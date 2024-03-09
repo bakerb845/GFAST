@@ -114,7 +114,8 @@ pgdThresholdLookupFile = /app/gfast/run/params/pgd_threshold_PW.txt
 rawSigmaThresholdLookupFile = /app/gfast/run/params/raw_sigma_threshold_PW.txt
 
 # Q channel threshold (as of 3/22/23, using the last digit, which is the
-# encoded goodness value). If goodness is below this threshold (<), ignore the observation
+# encoded goodness value). If goodness is below (<) this threshold, ignore the observation.
+# If value is < 0, allow any Q value
 q_value_threshold = -1
 
 # If defined, don't send xml if pgd_sigma is greater than this value

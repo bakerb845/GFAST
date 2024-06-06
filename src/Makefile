@@ -85,7 +85,7 @@ clean:
 	done
 	make -C $(TESTDIR) clean
 
-veryclean: cleandocs
+veryclean: cleandocs cleancoverage
 	for dir in $(SUBDIRS) ; do \
 		make -C $$dir veryclean ; \
 	done

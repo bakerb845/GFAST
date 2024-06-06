@@ -561,7 +561,7 @@ char *dmlibWrapper_createPGDXML(const double currentTime,
           i_tok++;
           token = strtok(NULL, ".");
         }
-      delete work;
+      free(work);
       work = NULL;
       
       assoc_flag = (n_assoc >= max_assoc_stations) ? false : true;

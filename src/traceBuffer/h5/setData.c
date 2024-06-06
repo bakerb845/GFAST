@@ -156,8 +156,8 @@ NEXT_TRACE:;
         if (ntraces == 0){continue;}
         // Open + read the data and attributes for this dataset 
         if (debug) {
-            LOG_DEBUGMSG("Opening fileID: %d, dtGroupName[%d]: '%s'",
-                h5traceBuffer.fileID,
+            LOG_DEBUGMSG("Opening fileID: %ld, dtGroupName[%d]: '%s'",
+                (long) h5traceBuffer.fileID,
                 idt,
                 h5traceBuffer.dtGroupName[idt]);
         }

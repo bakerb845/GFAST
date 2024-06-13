@@ -33,7 +33,7 @@ TEST(Eewutils, testParseXML) {
     rewind(xmlfl);
     message = (char *)calloc((size_t) (fsize + 1), sizeof(char)); // +1 to null terminate
 
-    ASSERT_NE(0, fread(message, (size_t) fsize, 1, xmlfl));
+    ASSERT_NE(0, (int) fread(message, (size_t) fsize, 1, xmlfl));
     fclose(xmlfl);
 
     ierr = eewUtils_parseCoreXML(message, SA_NAN, &SA);

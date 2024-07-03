@@ -58,7 +58,7 @@ ifeq ($(LAPACKE_INCL),)
   LAPACKE_INCL=-I$(LAPACKE)/include/lapacke
 endif
 ifeq ($(LAPACKE_LIB),)
-  LAPACKE_LIB=$(LAPACKE)/lib$(BITS)/liblapack.so.3 $(LAPACKE)/lib$(BITS)/liblapacke.so.3
+  LAPACKE_LIB=$(LAPACKE)/lib$(BITS)/liblapacke.so.3
 endif
 
 ifeq ($(XML2),)

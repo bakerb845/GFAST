@@ -426,10 +426,12 @@ char *dmlibWrapper_createPGDXML(const double currentTime,
   vals = (struct dist_index *) calloc((size_t) pgd->nsites, sizeof(struct dist_index));
   // int max_assoc_stations = 6;
 
-  // Convert enum units to char
-  char magUnits[32], magUncerUnits[32], latUnits[32], latUncerUnits[32], lonUnits[32],
-      lonUncerUnits[32], depthUnits[32], depthUncerUnits[32], origTimeUnits[32],
-      origTimeUncerUnits[32];
+  // Convert enum units to char. 
+  // NCHAR should match the number of characters expected by __xml_units__enum2string
+  const int NCHAR = 128;
+  char magUnits[NCHAR], magUncerUnits[NCHAR], latUnits[NCHAR], latUncerUnits[NCHAR],
+      lonUnits[NCHAR], lonUncerUnits[NCHAR], depthUnits[NCHAR], depthUncerUnits[NCHAR],
+      origTimeUnits[NCHAR], origTimeUncerUnits[NCHAR];
   __xml_units__enum2string(core->magUnits, magUnits);
   __xml_units__enum2string(core->magUncerUnits, magUncerUnits);
   __xml_units__enum2string(core->latUnits, latUnits);

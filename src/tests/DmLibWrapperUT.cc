@@ -102,6 +102,8 @@ TEST(DmLibWrapper, testCreatePGDXml) {
     EXPECT_DOUBLE_EQ(std::stod(tests::extract_xml_value("lat", pgdXML)), SA_lat);
     EXPECT_DOUBLE_EQ(std::stod(tests::extract_xml_value("lon", pgdXML)), SA_lon);
     EXPECT_DOUBLE_EQ(std::stoi(tests::extract_xml_value("num_stations", pgdXML)), core.numStations);
+    EXPECT_EQ(tests::extract_xml_attribute("mag", "units", pgdXML), "Mw");
+    EXPECT_EQ(tests::extract_xml_attribute("orig_time", "units", pgdXML), "UTC");
 
     // Clean up
     core_scaling_pgd_finalizeData(&pgd_data);

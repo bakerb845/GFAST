@@ -1,3 +1,8 @@
+version 1.2.5 2024-07-26  Carl Ulberg   <ulbergc@uw.edu>
+    * Summary:
+      - Small bugfix in dmlibWrapper.cpp. Unit char[] length did not match what was expected in
+        src/xml/quakeML/units.c::__xml_units__enum2string(), so units in output xml were blank when
+        compiling on rhel9
 version 1.2.4 2023-08-03  Carl Ulberg   <ulbergc@uw.edu>
     * Summary:
       - Add internal/external message versions in driveGFAST. The internal versions start at v-1,

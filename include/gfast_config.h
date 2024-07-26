@@ -1,6 +1,6 @@
 #ifndef _gfast_config__h_
 #define _gfast_config__h_ 1
-#define GFAST_VERSION "gfast-1.2.4-2023-10-12"
+#define GFAST_VERSION "gfast-1.2.5-2024-07-26"
 #define GFAST_MAXMSG_LEN 8192
 #define MAX_OUTPUT_INTERVALS 16
 #define MAX_THROTTLING_THRESHOLDS 100

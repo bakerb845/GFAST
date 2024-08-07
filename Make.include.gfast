@@ -41,14 +41,16 @@ ifeq ($(ISCL_LIB),)
   ISCL_LIB=$(ISCL)/lib/libiscl_static.a
 endif
 
+INIPARSER_LOCAL=/usr/local/iniparser-4.1
+INIPARSER_SYS=/usr
 ifeq ($(INIPARSER),)
-  INIPARSER=/usr/local/iniparser-4.1
+  INIPARSER=$(INIPARSER_SYS)
 endif
 ifeq ($(INIPARSER_INCL),)
-  INIPARSER_INCL=-I$(INIPARSER)/include
+  INIPARSER_INCL=-I$(dir $(firstword $(wildcard $(INIPARSER)/include/iniparser/iniparser.h $(INIPARSER_LOCAL)/include/iniparser.h)))
 endif
 ifeq ($(INIPARSER_LIB),)
-  INIPARSER_LIB=$(INIPARSER)/lib/libiniparser.a
+  INIPARSER_LIB=$(firstword $(wildcard $(INIPARSER)/lib64/libiniparser.so $(INIPARSER_LOCAL)/lib/libiniparser.a))
 endif
 
 ifeq ($(LAPACKE),)

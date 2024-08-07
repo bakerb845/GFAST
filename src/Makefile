@@ -130,3 +130,8 @@ docs: doxygen.conf
 
 cleandocs: 
 	rm -rf $(DOCDIR) *.tag
+
+printvars:
+	@echo INIPARSER=$(INIPARSER)
+	@echo INIPARSER_INCL=$(INIPARSER_INCL)
+	@echo INIPARSER_LIB=$(INIPARSER_LIB)

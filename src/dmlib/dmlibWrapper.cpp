@@ -209,7 +209,7 @@ int stopEventReceiver() {
   return 1;
 }
 
-int startEventSender(const char eventtopic[]) {
+int startEventSender(const char eventtopic[], const double msg_ttl) {
   if (conVerbose > 2)
     {
       LOG_DEBUGMSG("%s: Starting dmlib DMMessageSender on topic: %s",
@@ -224,7 +224,7 @@ int startEventSender(const char eventtopic[]) {
       return 0;
     }
   try {
-    eventsender = new DMMessageSender(destinationConnection,eventtopic);
+    eventsender = new DMMessageSender(destinationConnection, eventtopic);
   }
   catch (exception &e)
     {
@@ -239,6 +239,10 @@ int startEventSender(const char eventtopic[]) {
       LOG_ERRMSG("%s: Encountered Exception running DMMessageSender%s",__func__,e.what());
       return -1;
     }
+  
+  if(msg_ttl > 0) {
+      eventsender->setTimeToLive(msg_ttl);
+  }
   return 1;
 }
 

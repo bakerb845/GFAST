@@ -215,3 +215,6 @@ maxAttempts = 5
 msWaitForMessage = 10
 
 maxMessages = 5
+
+# Output message expiration durations (seconds).  0 for no expiration.
+MsgTimeToLive = 0

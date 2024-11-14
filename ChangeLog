@@ -1,3 +1,7 @@
+version 1.2.6 2024-11-13  Carl Ulberg   <ulbergc@uw.edu>
+    * Summary:
+      - Add explicit ActiveMQ MsgTimeToLive config option for GFAST message sender
+      - Remove deprecated ActiveMQ files
 version 1.2.5 2024-07-26  Carl Ulberg   <ulbergc@uw.edu>
     * Summary:
       - Small bugfix in dmlibWrapper.cpp. Unit char[] length did not match what was expected in

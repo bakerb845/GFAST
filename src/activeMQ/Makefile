@@ -6,7 +6,6 @@ GFAST_DIR = ../..
 include $(GFAST_DIR)/Make.include.gfast
 
 OBJS	= activeMQ.c.o activeMQ.cpp.o readIni.c.o
-# ShakeAlertConsumer.cpp.o consumer.cpp.o 
 LIB	= gfast_amq.a
 DEBUG	= -g
 #CCFLAGS	+= -std=c++0x -O0 -D_REENTRANT -Dstatic_config

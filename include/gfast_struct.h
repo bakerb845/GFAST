@@ -157,6 +157,7 @@ struct GFAST_activeMQ_struct
 				(default is 0). */
   unsigned int maxMessages;   /*!< Maximum messages in consumer FIFO buffer 
 				(default is 5). */
+  double msg_ttl;             /*!< Message time to live (seconds) (default is 0) */
 };
 
 struct GFAST_ew_struct

@@ -297,10 +297,12 @@ int main(int argc, char **argv)
 
             /*start message sender*/
             if (props.verbose > 0) {
-                LOG_MSG("%s: Initializing event sender on %s...", 
-                    fcnm, props.activeMQ_props.destinationTopic);
+                LOG_MSG("%s: Initializing event sender on %s, time to live %fs ...", 
+                    fcnm, props.activeMQ_props.destinationTopic, props.activeMQ_props.msg_ttl);
             }
-            ierr = startEventSender(props.activeMQ_props.destinationTopic);
+            ierr = startEventSender(
+                props.activeMQ_props.destinationTopic,
+                props.activeMQ_props.msg_ttl);
             if (ierr == 0) {
                 LOG_ERRMSG("%s: Attempted to re-initialize active event sender object", fcnm);
             }

@@ -39,7 +39,7 @@ int core_scaling_pgd_initialize(struct GFAST_pgd_props_struct pgd_props,
             LOG_ERRMSG("No lats in PGD grid search %d",
                        pgd_props.ngridSearch_lats);
         }
-        if (pgd->nlats < 1)
+        if (pgd->nlons < 1)
         {
             LOG_ERRMSG("No lons in PGD grid search %d",
                        pgd_props.ngridSearch_lons);
@@ -99,7 +99,7 @@ int core_scaling_pgd_initialize(struct GFAST_pgd_props_struct pgd_props,
         if (gps_data.data[i].lskip_pgd){pgd_data->lmask[i] = true;}
     }
 
-    nloc = pgd->ndeps*pgd->nlats*pgd->nlons;
+    nloc = pgd->ndeps * pgd->nlats * pgd->nlons;
     pgd->mpgd       = memory_calloc64f(nloc);
     pgd->mpgd_sigma = memory_calloc64f(nloc);
     pgd->mpgd_vr    = memory_calloc64f(nloc);

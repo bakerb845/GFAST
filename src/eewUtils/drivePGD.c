@@ -44,7 +44,7 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
                       struct GFAST_pgdResults_struct *pgd)
 {
     double *d, *srdist, *staAlt, *Uest, *utmRecvEasting, *utmRecvNorthing, *wts,
-           iqrMin, *utmSrcEasting, *utmSrcNorthing, x1, x2, y1, y2;
+           iqrMin, *utmSrcEastings, *utmSrcNorthings, x1, x2, y1, y2;
     int i, ilat, ilon, ilatLon, iloc, ierr, j, k, l1, nlatlon, nloc, zone_loc;
     bool *luse, lnorthp;
     //------------------------------------------------------------------------//
@@ -187,8 +187,8 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
     wts             = memory_calloc64f(l1);
     Uest            = memory_calloc64f(l1*nloc);
     srdist          = memory_calloc64f(l1*nloc);
-    utmSrcNorthing  = memory_calloc64f(nlatlon);
-    utmSrcEasting   = memory_calloc64f(nlatlon);
+    utmSrcNorthings = memory_calloc64f(nlatlon);
+    utmSrcEastings  = memory_calloc64f(nlatlon);
     // Get the source location
     zone_loc = pgd_props.utm_zone;
     if (zone_loc ==-12345){zone_loc =-1;} // Estimate UTM zone from source lon
@@ -199,8 +199,8 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
                                    SA_lon + pgd->srcLons[ilon],
                                    &y1, &x1,
                                    &lnorthp, &zone_loc);
-            utmSrcNorthing[ilatLon] = y1; 
-            utmSrcEasting[ilatLon] = x1;
+            utmSrcNorthings[ilatLon] = y1; 
+            utmSrcEastings[ilatLon] = x1;
         }
     }
     // Loop on the receivers, get distances, and data
@@ -230,8 +230,8 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
                                        pgd_props.verbose,
                                        pgd_props.dist_tol,
                                        pgd_props.disp_def,
-                                       utmSrcEasting,
-                                       utmSrcNorthing,
+                                       utmSrcEastings,
+                                       utmSrcNorthings,
                                        pgd->srcDepths,
                                        utmRecvEasting,
                                        utmRecvNorthing,

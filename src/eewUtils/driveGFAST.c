@@ -24,7 +24,6 @@
  * @param[in] interval_in_mins is interval in minutes?
  * @return status code.
  */
-
 int eewUtils_writeXML(const char *dirname, const char *eventid, const char *msg_type, const char *message, int interval, bool interval_in_mins);
 
 bool check_mins_against_intervals(struct GFAST_props_struct props,
@@ -34,36 +33,6 @@ bool check_mins_against_intervals(struct GFAST_props_struct props,
                                   char * xml,
                                   bool * interval_complete,
                                   double age);
-
-/*!
- * @brief Fills a given coreInfo_struct with the appropriate information
- * @param[in] evid Event ID
- * @param[in] version Event version number
- * @param[in] SA_lat Event latitude
- * @param[in] SA_lon Event longitude
- * @param[in] SA_depth Event depth
- * @param[in] SA_mag Event magnitude
- * @param[in] SA_time Event origin time (UTC)
- * @param[in] num_stations Number of stations contributing
- * @param[out] core struct to fill with information
- * @return status code.
- */
-int fill_core_event_info(const char *evid,
-                         const int version,
-                         const double SA_lat,
-                         const double SA_lon,
-                         const double SA_depth,
-                         const double SA_mag,
-                         const double SA_time,
-                         const int num_stations,
-                         struct coreInfo_struct *core);
-
-bool send_xml_filter(const struct GFAST_props_struct *props,
-                     const struct GFAST_shakeAlert_struct *SA,
-                     const struct GFAST_pgdResults_struct *pgd,
-                     const struct GFAST_peakDisplacementData_struct *pgd_data,
-                     const struct coreInfo_struct *core,
-                     const double age_of_event);
 
 /*!
  * @brief Expert earthquake early warning GFAST driver.
@@ -158,11 +127,17 @@ int eewUtils_driveGFAST(const double currentTime,
         t_event = time_timeStamp();
         // Get the streams for this event
         memcpy(&SA, &events->SA[iev], sizeof(struct GFAST_shakeAlert_struct));
+
+        // internal_version always decrements by 1
+        xml_status->SA_status[iev].internal_version -= 1;
+
         t1 = SA.time;     // Origin time
         t2 = currentTime;
         age_of_event = (t2 - t1);
-        LOG_MSG("%s: Starting event time:%lf evid:%s [age_of_event=%f]",
-            fcnm, t2, SA.eventid, age_of_event);
+        LOG_MSG("%s: Starting event, current time:%lf evid:%s internal version: %d [age_of_event=%lf]",
+            fcnm, t2, SA.eventid, xml_status->SA_status[iev].internal_version, age_of_event);
+        LOG_MSG("%s: SA event info OT:%lf lat:%lf lon:%lf mag:%lf SA version:%d",
+            fcnm, SA.time, SA.lat, SA.lon, SA.mag, SA.version);
 
         // Skip event if the times doen't make sense
         if (t1 > t2) {
@@ -188,9 +163,8 @@ int eewUtils_driveGFAST(const double currentTime,
             continue;
         }
 
-        // Set the log file names. Comment out in advance of providing compile
-        // option to use these (for NOAA) or plog (for ShakeAlert) - CWU
 #ifndef ENABLE_PLOG
+        // Set the log file names. 
         eewUtils_setLogFileNames(SA.eventid,props.SAoutputDir,
             errorLogFileName, infoLogFileName,
             debugLogFileName, warnLogFileName);
@@ -396,24 +370,29 @@ int eewUtils_driveGFAST(const double currentTime,
         // Make xml messages
         ///////////////////////////////////////////////////////////////////////////
         t_time0 = time_timeStamp();
+
         LOG_MSG("driveGFAST: make XML msgs: lpgdSuccess=%d lcmtSuccess=%d lffSuccess=%d",
             lpgdSuccess, lcmtSuccess, lffSuccess);
-        xml_status->SA_status[iev].version += 1;
-        char *message_type = (xml_status->SA_status[iev].version==0)?"new\0":"update\0";
+
         char sversion[6];
-        snprintf(sversion,6,"%d",xml_status->SA_status[iev].version);
+        char message_type[16];
+        snprintf(sversion, 6, "%d", xml_status->SA_status[iev].internal_version);
+        sprintf(message_type, "%s", "update\0");
 
         // Fill coreInfo_struct to pass to makeXML for pgd and ff
         struct coreInfo_struct core;
         memset(&core, 0, sizeof(struct coreInfo_struct));
-        ierr = fill_core_event_info(SA.eventid, xml_status->SA_status[iev].version, SA.lat,
-            SA.lon, SA.dep, SA.mag, SA.time, 0, &core);
+        ierr = eewUtils_fillCoreEventInfo(SA.eventid, xml_status->SA_status[iev].internal_version,
+            SA.lat, SA.lon, SA.dep, SA.mag, SA.time, 0, &core);
               
-        // Make the PGD xml
+        // Handle the PGD xml
         if (props.pgd_props.do_pgd && lpgdSuccess) {
             if (props.verbose > 2) {
                 LOG_DEBUGMSG("%s", "Generating pgd XML");
             }
+
+            bool send_pgd = false;
+
             // Change depth, mag to match optimal pgd (by variance reduction)
             pgdOpt = array_argmax64f(pgd->ndeps, pgd->dep_vr_pgd, &ierr);
             core.depth = pgd->srcDepths[pgdOpt];
@@ -421,11 +400,42 @@ int eewUtils_driveGFAST(const double currentTime,
             core.magUncer = pgd->mpgd_sigma[pgdOpt];
             core.numStations = nsites_pgd;
 
+#ifdef GFAST_USE_AMQ
+            // Determine if message should be sent via ActiveMQ
+            if (!eewUtils_sendXMLFilter(
+                &props,
+                &SA,
+                pgd,
+                pgd_data,
+                &core, 
+                &(xml_status->SA_status[iev].last_sent_core),
+                age_of_event)) 
+            {
+                // Update version, message type if message should be sent
+                send_pgd = true;
+                xml_status->SA_status[iev].external_version += 1;
+                core.version = xml_status->SA_status[iev].external_version;
+                snprintf(sversion, 6, "%d", xml_status->SA_status[iev].external_version);
+                if (xml_status->SA_status[iev].external_version == 0) {
+                    sprintf(message_type, "%s", "new\0");
+                }
+                LOG_MSG("driveGFAST: PGD message will be sent! Internal version: %d, external version: %d",
+                    xml_status->SA_status[iev].internal_version,
+                    xml_status->SA_status[iev].external_version)
+            }
+#endif /* GFAST_USE_AMQ */
+
+            // Make PGD xml
 #ifdef GFAST_USE_DMLIB
-            //   Encode xml with dmlib
+            // Encode xml with dmlib
             LOG_MSG("%s", "driveGFAST: CWU_TEST dmlib encoding");
+            // Use time closest to when xml is actually sent to be consistent with ShakeAlert
+            // algorithms.
+            // Alternative is to use the "currentTime" variable to correspond to the start of the
+            // processing loop in gfast_eew.
+            double timestamp = time_timeStamp();
             pgdXML = dmlibWrapper_createPGDXML(
-                currentTime,
+                timestamp,
                 props.opmode,
                 GFAST_VERSION,
                 program_instance,
@@ -461,16 +471,19 @@ int eewUtils_driveGFAST(const double currentTime,
                     SA.eventid, iev, xml_status->SA_status[iev].eventid);
             }
 
-#if defined GFAST_USE_AMQ && defined GFAST_USE_DMLIB
-            // Send message via ActiveMQ if appropriate
-            if (!send_xml_filter(&props, &SA, pgd, pgd_data, &core, age_of_event)) {
+#ifdef GFAST_USE_AMQ
+            if (send_pgd) {
                 if (pgdXML != NULL) {
                     sendEventXML(pgdXML);
+                    memcpy(
+                        &(xml_status->SA_status[iev].last_sent_core),
+                        &core, 
+                        sizeof(core));
                 }
-                LOG_MSG("== Sending xml, [GFAST t0:%f] evid:%s pgdXML=[%s]\n",
-                    currentTime, SA.eventid, pgdXML);
+                LOG_MSG("== Sending xml, [GFAST t0:%f] evid:%s version:%d pgdXML=[%s]\n",
+                    currentTime, SA.eventid, core.version, pgdXML);
             }
-#endif /* GFAST_USE_AMQ && GFAST_USE_DMLIB */
+#endif /* GFAST_USE_AMQ */
             
             if (props.output_interval_mins[0] == 0) { // Output at every iteration
                 int index = core.version;
@@ -483,10 +496,15 @@ int eewUtils_driveGFAST(const double currentTime,
                 check_mins_against_intervals(props, mins, SA.eventid, "pgd", pgdXML,
                     xml_status->SA_status[iev].interval_complete[0], age_of_event);
             }
+
+            // reset version, message type to reflect internal state for cmt, ff
+            core.version = xml_status->SA_status[iev].internal_version;
+            snprintf(sversion, 6, "%d", xml_status->SA_status[iev].internal_version);
+            sprintf(message_type, "%s", "update\0");
             LOG_MSG("Leaving PGD writeXML ierr=%d", ierr);
         } //if props.pgd_props.do_pgd && lpgdSuccess
 
-        // Make the CMT quakeML
+        // Handle the CMT quakeML
         if (props.cmt_props.do_cmt && lcmtSuccess) {
             if (props.verbose > 2) {
                 LOG_DEBUGMSG("%s", "Generating CMT QuakeML");
@@ -522,7 +540,7 @@ int eewUtils_driveGFAST(const double currentTime,
                     xml_status->SA_status[iev].interval_complete[1], age_of_event);
             }
         } // if props.cmt_props.do_cmt && lcmtSuccess
-        // Make the finite fault XML
+        // Handle the finite fault XML
         if (props.ff_props.do_ff && lffSuccess) {
             if (props.verbose > 2) {
                 LOG_DEBUGMSG("Generating FF XML; preferred plane=%d",
@@ -760,161 +778,4 @@ bool check_mins_against_intervals(struct GFAST_props_struct props,
     }
 
     return false;
-}
-
-int fill_core_event_info(const char *evid,
-                         const int version,
-                         const double SA_lat,
-                         const double SA_lon,
-                         const double SA_depth,
-                         const double SA_mag,
-                         const double SA_time,
-                         const int num_stations,
-                         struct coreInfo_struct *core)
-{
-    strcpy(core->id, evid);
-    core->version = version;
-    core->mag = SA_mag;
-    core->lhaveMag = true;
-    core->magUnits = MOMENT_MAGNITUDE;
-    core->lhaveMagUnits = true;
-    core->magUncer = 0.5;
-    core->lhaveMagUncer = true;
-    core->magUncerUnits = MOMENT_MAGNITUDE;
-    core->lhaveMagUncerUnits = true;
-    core->lat = SA_lat; 
-    core->lhaveLat = true;
-    core->latUnits = DEGREES;
-    core->lhaveLatUnits = true;
-    core->latUncer = (double) NAN;
-    core->lhaveLatUncer = true;
-    core->latUncerUnits = DEGREES;
-    core->lhaveLatUncerUnits = true;
-    // GFAST would call lon -120 as 240 by default. Change this to be
-    // consistent with ShakeAlert seismic algorithms
-    core->lon = (SA_lon > 180) ? SA_lon - 360: SA_lon;
-    core->lhaveLon = true;
-    core->lonUnits = DEGREES;
-    core->lhaveLonUnits = true;
-    core->lonUncer = (double) NAN;
-    core->lhaveLonUncer = true;
-    core->lonUncerUnits = DEGREES;
-    core->lhaveLonUncerUnits = true;
-    core->depth = SA_depth;
-    core->lhaveDepth = true;
-    core->depthUnits = KILOMETERS;
-    core->lhaveDepthUnits = true;
-    core->depthUncer = (double) NAN;
-    core->lhaveDepthUncer = true;
-    core->depthUncerUnits = KILOMETERS;
-    core->lhaveDepthUncerUnits = true;
-    core->origTime = SA_time;
-    core->lhaveOrigTime = true;
-    core->origTimeUnits = UTC;
-    core->lhaveOrigTimeUnits = true;
-    core->origTimeUncer = (double) NAN;
-    core->lhaveOrigTimeUncer = true;
-    core->origTimeUncerUnits = SECONDS;
-    core->lhaveOrigTimeUncerUnits = true;
-    core->likelihood = 0.8;
-    core->lhaveLikelihood = true;
-    core->numStations = num_stations;
-    return 0;
-}
-
-/*
- * Return true if this message should not be sent (false if it should be sent)
- */
-bool send_xml_filter(const struct GFAST_props_struct *props,
-                     const struct GFAST_shakeAlert_struct *SA,
-                     const struct GFAST_pgdResults_struct *pgd,
-                     const struct GFAST_peakDisplacementData_struct *pgd_data,
-                     const struct coreInfo_struct *core,
-                     const double age_of_event) 
-{
-
-    // Conditions can be met or exceeded.
-    // Exceeded is used if a value being more than a threshold means no throttling
-    // Met is used if a value being less than a threshold means no throttling 
-    bool pgd_exceeded = false;
-    bool mag_exceeded = false;
-    bool mag_sigma_met = false;
-    // Determine if pgd threshold is exceeded n times
-    int num_pgd_exceeded = 0, i, i_throttle;
-
-    // Find the correct throttle criteria based on the time after origin
-    i_throttle = -1;
-    for (i = 0; i < props->pgd_props.n_throttle; i++) {
-        if (props->pgd_props.throttle_time_threshold[i] > age_of_event) break;
-        i_throttle++;
-    }
-    i_throttle = (i_throttle < 0) ? 0: i_throttle;
-    if (props->verbose > 2) {
-        LOG_DEBUGMSG("%s: For age_of_event %.2f, using i_throttle=%d, thresholds for time=%.1f, pgd=%.1f, nsta=%d",
-            __func__,
-            age_of_event,
-            i_throttle,
-            props->pgd_props.throttle_time_threshold[i_throttle],
-            props->pgd_props.throttle_pgd_threshold[i_throttle],
-            props->pgd_props.throttle_num_stations[i_throttle])
-    }
-
-    // Assumes pgd->nsites = pgd_data->nsites and indices correspond
-    if (pgd->nsites != pgd_data->nsites) {
-        LOG_ERRMSG("%s: nsites don't match for pgd, pgd_data! %d, %d\n", 
-            __func__, pgd->nsites, pgd_data->nsites);
-        return false;
-    }
-    for (i = 0; i < pgd->nsites; i++) {
-        // skip site if it wasn't used
-        if (!pgd->lsiteUsed[i]) { continue; }
-        // pd is in meters, so convert to cm before comparing to threshold
-        if (pgd_data->pd[i] * 100. > props->pgd_props.throttle_pgd_threshold[i_throttle]) {
-            num_pgd_exceeded++;
-        }
-    }
-
-    if (props->verbose > 2) {
-        LOG_DEBUGMSG("%s: PGD threshold of %.1f cm exceeded at %d stations (threshold num: %d)",
-            __func__, props->pgd_props.throttle_pgd_threshold[i_throttle], num_pgd_exceeded,
-            props->pgd_props.throttle_num_stations[i_throttle]);
-    }
-    if (num_pgd_exceeded >= props->pgd_props.throttle_num_stations[i_throttle]) {
-        LOG_MSG("%s: PGD threshold of %.1f cm exceeded at %d stations (threshold num: %d)",
-            __func__, props->pgd_props.throttle_pgd_threshold[i_throttle], num_pgd_exceeded,
-            props->pgd_props.throttle_num_stations[i_throttle]);
-        pgd_exceeded = true;
-    }
-
-    // Determine if SA mag threshold is exceeded
-    if (props->verbose > 2) {
-        LOG_DEBUGMSG("%s: SA mag: %f, threshold mag: %f",
-            __func__, SA->mag, props->pgd_props.SA_mag_threshold);
-    }
-    if (SA->mag >= props->pgd_props.SA_mag_threshold) {
-        mag_exceeded = true;
-        LOG_MSG("%s: SA magnitude exceeded! SA mag: %f, threshold mag: %f",
-            __func__, SA->mag, props->pgd_props.SA_mag_threshold);
-    }
-
-    // Determine if pgd magnitude sigma threshold is met
-    if (props->verbose > 2) {
-        LOG_DEBUGMSG("%s: PGD mag sigma: %f, threshold mag sigma: %f, PGD mag: %f",
-            __func__, core->magUncer, props->pgd_props.pgd_sigma_throttle, core->mag);
-    }
-    if (core->magUncer < props->pgd_props.pgd_sigma_throttle) {
-        mag_sigma_met = true;
-        LOG_MSG("%s: PGD mag sigma met! PGD mag sigma: %f, threshold mag sigma: %f, PGD mag: %f",
-            __func__, core->magUncer, props->pgd_props.pgd_sigma_throttle, core->mag);
-    }
-
-    if (pgd_exceeded && mag_exceeded && mag_sigma_met) {
-        LOG_MSG("%s: Message not throttled (%s v%d)! pgd_exceeded: %d, mag_exceeded: %d, mag_sigma_met: %d",
-            __func__, core->id, core->version, pgd_exceeded, mag_exceeded, mag_sigma_met);
-        return false;
-    }
-
-    LOG_MSG("%s: Message throttled (%s v%d)! pgd_exceeded: %d, mag_exceeded: %d, mag_sigma_met: %d",
-        __func__, core->id, core->version, pgd_exceeded, mag_exceeded, mag_sigma_met);
-    return true;
 }

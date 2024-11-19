@@ -47,7 +47,8 @@ int core_waveformProcessor_peakDisplacement(
 {
     double currentTime, distance, effectiveHypoDist, epoch,
            peakDisp, x1, x2, y1, y2, tmin, tmax, obsTime,
-           uMaxUncertainty, nMaxUncertainty, eMaxUncertainty, qMax, qRef, qPeak;
+           uMaxUncertainty, nMaxUncertainty, eMaxUncertainty;
+    int qMin, qRef, qPeak;
     int k, nsites, zone_loc, iRef, iPeak;
     //unused int i;
     bool lnorthp;
@@ -78,6 +79,20 @@ int core_waveformProcessor_peakDisplacement(
     const double u_raw_sigma_threshold = pgd_props->u_raw_sigma_threshold;
     const double n_raw_sigma_threshold = pgd_props->n_raw_sigma_threshold;
     const double e_raw_sigma_threshold = pgd_props->e_raw_sigma_threshold;
+    // Threshold value for Q channel. If the observed Q value for the reference
+    // or peak displacement is <= this threshold, ignore the pd observation.
+    // If q_value_threshold is < 0, allow any Q value
+    const int q_value_threshold = pgd_props->q_value_threshold;
+
+    LOG_MSG("Calculating PD, svel=(%.1f/%.1f), pgd_bounds=(%.1f/%.1f), sigma_thresh=(%.1f/%.1f/%.1f), q_thresh=%d",
+        svel_window,
+        min_svel_window,
+        min_pgd_cm,
+        max_pgd_cm,
+        u_raw_sigma_threshold,
+        n_raw_sigma_threshold,
+        e_raw_sigma_threshold,
+        q_value_threshold);
 
     //------------------------------------------------------------------------//
     //
@@ -90,7 +105,9 @@ int core_waveformProcessor_peakDisplacement(
     uMaxUncertainty = 0.0;
     eMaxUncertainty = 0.0;
     nMaxUncertainty = 0.0;
-    qMax = 0.0;
+    qMin = 0;
+    qRef = 0;
+    qPeak = 0;
     if (gps_data.stream_length != pgd_data->nsites)
     {
         LOG_ERRMSG("Inconsistent structure sizes %d %d",
@@ -125,7 +142,9 @@ int core_waveformProcessor_peakDisplacement(
         uMaxUncertainty = 0.0;
         eMaxUncertainty = 0.0;
         nMaxUncertainty = 0.0;
-        qMax = 0.0;
+        qMin = 0;
+        qRef = 0;
+        qPeak = 0;
         // Make sure I have the latest/greatest site location 
         pgd_data->sta_lat[k] = gps_data.data[k].sta_lat;
         pgd_data->sta_lon[k] = gps_data.data[k].sta_lon; 
@@ -187,7 +206,6 @@ int core_waveformProcessor_peakDisplacement(
               gps_data.data[k].netw, gps_data.data[k].loc);
         */
 
-        //if (distance < effectiveHypoDist)
         if (distance < effectiveHypoDist)
         {
             // Compute the peak displacement max(norm(u + n + e, 2))
@@ -254,12 +272,12 @@ M 9 at 100km: -6.687 + 150 - 21.4*2 = 100 cm(?)
                     eMaxUncertainty = fmax(gps_data.data[k].esigmabuff[iRef], gps_data.data[k].esigmabuff[iPeak]);
                 }
                 if (!isnan(gps_data.data[k].qbuff[iRef]) && !isnan(gps_data.data[k].qbuff[iPeak])) {
-                    qRef = core_waveformProcessor_parseQChannelChi2CWU(gps_data.data[k].qbuff[iRef]);
-                    qPeak = core_waveformProcessor_parseQChannelChi2CWU(gps_data.data[k].qbuff[iPeak]);
-                    qMax = fmax(qRef, qPeak);
+                    qRef = core_waveformProcessor_parseQChannelGoodness(gps_data.data[k].qbuff[iRef]);
+                    qPeak = core_waveformProcessor_parseQChannelGoodness(gps_data.data[k].qbuff[iPeak]);
+                    qMin = fmin(qRef, qPeak);
                 }
 
-                LOG_MSG("%s.%s.%s.%s peakDisp=%f dist=%.2f, peakSigmas=(%.4f,%.4f,%.4f), peakQ=%.4f",
+                LOG_MSG("%s.%s.%s.%s peakDisp=%f dist=%.2f, peakSigmas=(%.4f,%.4f,%.4f), minQ=%d",
                         gps_data.data[k].stnm, gps_data.data[k].chan[0],
                         gps_data.data[k].netw, gps_data.data[k].loc,
                         peakDisp,
@@ -267,7 +285,7 @@ M 9 at 100km: -6.687 + 150 - 21.4*2 = 100 cm(?)
                         uMaxUncertainty,
                         nMaxUncertainty,
                         eMaxUncertainty,
-                        qMax);
+                        qMin);
             }
 
             // Is the observation above the defined minimum?
@@ -310,6 +328,18 @@ M 9 at 100km: -6.687 + 150 - 21.4*2 = 100 cm(?)
                     u_raw_sigma_threshold,
                     n_raw_sigma_threshold,
                     e_raw_sigma_threshold
+                );
+            }
+
+            // Is the observation under the Q value threshold?
+            if ((q_value_threshold >= 0) && (qMin < q_value_threshold)) {
+                l_use_observation = false;
+                LOG_DEBUGMSG("CCC PeakDisp, %s.%s.%s.%s ignoring observation, qRef/qPeak: (%d/%d), threshold: %d",
+                    gps_data.data[k].stnm, gps_data.data[k].chan[0],
+                    gps_data.data[k].netw, gps_data.data[k].loc,
+                    qRef,
+                    qPeak,
+                    q_value_threshold
                 );
             }
 

@@ -104,16 +104,26 @@ pgd_min_sites = 4
 # Lookup table for non-density corrected value to generate magnitude 
 # uncertainty based on time and magnitude
 sigmaLookupFile = /app/gfast/run/params/M99.txt
+
 # Lookup table for time-dependant PGD thresholds 
 # columns: time (s) | threshold (cm) | n stations
 pgdThresholdLookupFile = /app/gfast/run/params/pgd_threshold_PW.txt
+
 # Positional uncertainty thresholds for including peak displacement observations
 # If not specified, allow any or NAN uncertainties
 rawSigmaThresholdLookupFile = /app/gfast/run/params/raw_sigma_threshold_PW.txt
+
+# Q channel threshold (as of 3/22/23, using the last digit, which is the
+# encoded goodness value). If goodness is below (<) this threshold, ignore the observation.
+# If value is < 0, allow any Q value
+q_value_threshold = -1
+
 # If defined, don't send xml if pgd_sigma is greater than this value
 pgd_sigma_throttle = 0.5
+
 # Message throttling logic
 SA_mag_threshold = 6.0
+
 # Minimum and maximum thresholds for using pgd values in inversion (cm). Any
 # values equal or outside these bounds will be ignored in the inversion.
 minimum_pgd_cm = 0.0
@@ -121,6 +131,17 @@ maximum_pgd_cm = 3500.0
 # Number of observations to be given the 'assoc=true' attribute, which is used
 # by the ShakeAlert Solution Aggregator in associating algorithm messages.
 max_assoc_stations = 6
+
+# Change thresholds to decide when to send a message, assuming other throttles
+# pass. If any of these are met or exceeded, a new message would be sent. If 
+# none are exceeded, message would not be sent.
+# If not present, threshold will be ignored
+change_threshold_mag = 0.05
+change_threshold_mag_uncer = 0.05
+change_threshold_lat = 0.05
+change_threshold_lon = 0.05
+change_threshold_orig_time = 1
+change_threshold_num_stations = 1
 
 ################################################################################
 #                            CMT/Finite Fault Properties                       #
@@ -193,3 +214,6 @@ maxAttempts = 5
 msWaitForMessage = 10
 
 maxMessages = 5
+
+# Output message expiration durations (seconds).  0 for no expiration.
+MsgTimeToLive = 0

@@ -172,6 +172,14 @@ int activeMQ_readIni(const char *propfilename,
 		  __func__);
       activeMQ_props->maxMessages = 5;
     }
+  setVarName(group, "MsgTimeToLive\0", var);
+  activeMQ_props->msg_ttl  = iniparser_getdouble(ini, var, 0);
+  if (activeMQ_props->msg_ttl < 0)
+    {
+      LOG_WARNMSG("%s: ActiveMQ message time to live must be >= 0, overriding to 0\n",
+		  __func__);
+      activeMQ_props->msg_ttl = 0;
+    }
 
   ierr = 0;
  ERROR:;

@@ -44,8 +44,8 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
                       struct GFAST_pgdResults_struct *pgd)
 {
     double *d, *srdist, *staAlt, *Uest, *utmRecvEasting, *utmRecvNorthing, *wts,
-           iqrMin, utmSrcEasting, utmSrcNorthing, x1, x2, y1, y2;
-    int i, idep, ierr, j, k, l1, nloc, zone_loc;
+           iqrMin, *utmSrcEasting, *utmSrcNorthing, x1, x2, y1, y2;
+    int i, ilat, ilon, ilatLon, iloc, ierr, j, k, l1, nlatlon, nloc, zone_loc;
     bool *luse, lnorthp;
     //------------------------------------------------------------------------//
     //
@@ -149,7 +149,7 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
         LOG_WARNMSG("%s", "Warning hypocenter isn't in grid search!");
     }
     // Null out results
-    nloc = pgd->ndeps*pgd->nlats*pgd->nlons;
+    nloc = pgd->ndeps * pgd->nlats * pgd->nlons;
     array_zeros64f_work(pgd->nsites, pgd->UPinp);
     array_zeros8l_work( pgd->nsites, pgd->lsiteUsed);
     array_zeros64f_work(nloc, pgd->mpgd);
@@ -179,24 +179,33 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
         goto ERROR;
     }
     // Allocate space
+    nlatlon = pgd->nlats * pgd->nlons;
     d               = memory_calloc64f(l1);
     utmRecvNorthing = memory_calloc64f(l1);
     utmRecvEasting  = memory_calloc64f(l1);
     staAlt          = memory_calloc64f(l1);
     wts             = memory_calloc64f(l1);
-    Uest            = memory_calloc64f(l1*pgd->ndeps);
-    srdist          = memory_calloc64f(l1*pgd->ndeps);
+    Uest            = memory_calloc64f(l1*nloc);
+    srdist          = memory_calloc64f(l1*nloc);
+    utmSrcNorthing  = memory_calloc64f(nlatlon);
+    utmSrcEasting   = memory_calloc64f(nlatlon);
     // Get the source location
     zone_loc = pgd_props.utm_zone;
     if (zone_loc ==-12345){zone_loc =-1;} // Estimate UTM zone from source lon
-    core_coordtools_ll2utm(SA_lat, SA_lon,
-                           &y1, &x1,
-                           &lnorthp, &zone_loc);
-    utmSrcNorthing = y1; 
-    utmSrcEasting = x1;
+    for (ilon = 0; ilon < pgd->nlons; ilon++) {
+        for (ilat = 0; ilat < pgd->nlats; ilat++) {
+            ilatLon = ilon * pgd->nlats + ilat;
+            core_coordtools_ll2utm(SA_lat + pgd->srcLats[ilat],
+                                   SA_lon + pgd->srcLons[ilon],
+                                   &y1, &x1,
+                                   &lnorthp, &zone_loc);
+            utmSrcNorthing[ilatLon] = y1; 
+            utmSrcEasting[ilatLon] = x1;
+        }
+    }
     // Loop on the receivers, get distances, and data
     l1 = 0;
-    for (k=0; k<pgd_data.nsites; k++)
+    for (k = 0; k < pgd_data.nsites; k++)
     {   
         if (!pgd_data.lactive[k] || pgd_data.wt[k] <= 0.0){continue;}
         // Get the recevier UTM
@@ -205,7 +214,7 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
                                &y2, &x2,
                                &lnorthp, &zone_loc);
         // Copy information to data structures for grid search
-        d[l1] = pgd_data.pd[k]*100.0; // convert peak ground displacement to cm
+        d[l1] = pgd_data.pd[k] * 100.0; // convert peak ground displacement to cm
         wts[l1] = pgd_data.wt[k];
         utmRecvNorthing[l1] = y2;
         utmRecvEasting[l1] = x2;
@@ -217,23 +226,23 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
     {   
         LOG_DEBUGMSG("Inverting for PGD with %d sites", l1);
     }   
-    ierr = core_scaling_pgd_depthGridSearch(l1, pgd->ndeps,
-                                            pgd_props.verbose,
-                                            pgd_props.dist_tol,
-                                            pgd_props.disp_def,
-                                            utmSrcEasting,
-                                            utmSrcNorthing,
-                                            pgd->srcDepths,
-                                            utmRecvEasting,
-                                            utmRecvNorthing,
-                                            staAlt,
-                                            d,
-                                            wts,
-                                            srdist,
-                                            pgd->mpgd,
-                                            pgd->mpgd_vr,
-                                            pgd->iqr,
-                                            Uest);
+    ierr = core_scaling_pgd_gridSearch(l1, pgd->ndeps, pgd->nlats, pgd->nlons,
+                                       pgd_props.verbose,
+                                       pgd_props.dist_tol,
+                                       pgd_props.disp_def,
+                                       utmSrcEasting,
+                                       utmSrcNorthing,
+                                       pgd->srcDepths,
+                                       utmRecvEasting,
+                                       utmRecvNorthing,
+                                       staAlt,
+                                       d,
+                                       wts,
+                                       srdist,
+                                       pgd->mpgd,
+                                       pgd->mpgd_vr,
+                                       pgd->iqr,
+                                       Uest);
     if (ierr != 0)
     {   
         if (pgd_props.verbose > 0)
@@ -253,7 +262,7 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
     }
     { /*vk needed for more stringent c++ compiler*/
       enum isclError_enum isclerr = (enum isclError_enum)ierr;
-      iqrMin = array_min64f(pgd->ndeps, pgd->iqr, &isclerr);
+      iqrMin = array_min64f(nloc, pgd->iqr, &isclerr);
     }
     // Extract the estimates and compute weighted objective function
     // Also add uncertainty estimate
@@ -261,23 +270,23 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
     int i99;
     for (i99 = 0; (i99 < pgd_props.n99) && (pgd_props.t99[i99] <= age_of_event); i99++) {}
     i99 = (i99 <= 0) ? 0 : i99 - 1;
-    for (idep=0; idep<pgd->ndeps; idep++)
+    for (iloc = 0; iloc < nloc; iloc++)
     {
         if (pgd_props.n99 == 0) {
-            pgd->mpgd_sigma[idep] = 0.5;
+            pgd->mpgd_sigma[iloc] = 0.5;
         } else {
-            pgd->mpgd_sigma[idep] = 0.5 * exp(pgd_props.m99[i99] - pgd->mpgd[idep]);
+            pgd->mpgd_sigma[iloc] = 0.5 * exp(pgd_props.m99[i99] - pgd->mpgd[iloc]);
         }
-        pgd->dep_vr_pgd[idep] = pgd->mpgd[idep]*iqrMin/pgd->iqr[idep];
+        pgd->dep_vr_pgd[iloc] = pgd->mpgd[iloc] * iqrMin / pgd->iqr[iloc];
         j = 0;
-        for (i=0; i<pgd->nsites; i++)
+        for (i = 0; i < pgd->nsites; i++)
         {
-            pgd->UP[idep*pgd->nsites+i] = 0.0;
-            pgd->srdist[idep*pgd->nsites+i] = 0.0;
+            pgd->UP[iloc * pgd->nsites + i] = 0.0;
+            pgd->srdist[iloc * pgd->nsites + i] = 0.0;
             if (luse[i])
             {
-                pgd->UP[idep*pgd->nsites+i] = Uest[idep*l1+j];
-                pgd->srdist[idep*pgd->nsites+i] = srdist[idep*l1+j];
+                pgd->UP[iloc * pgd->nsites + i] = Uest[iloc * l1 + j];
+                pgd->srdist[iloc * pgd->nsites + i] = srdist[iloc * l1 + j];
                 j = j + 1;
             }
         }

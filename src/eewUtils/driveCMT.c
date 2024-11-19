@@ -45,8 +45,8 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
            *eOffset, *eEst, *eWts, *nOffset, *nEst, *nWts,
            *uOffset, *uEst, *uWts,
            DC_pct, eres, nres, sum_res2, ures,
-           utmSrcEasting, utmSrcNorthing, wte, wtn, wtu, x1, y1, x2, y2;
-    int i, idep, ierr, ierr1, ilat, ilon, indx, k, l1, nlld, zone_loc;
+           *utmSrcEastings, *utmSrcNorthings, wte, wtn, wtu, x1, y1, x2, y2;
+    int i, idep, ierr, ierr1, ilat, ilon, ilatLon, indx, k, l1, nlld, nlatlon, zone_loc;
     bool *luse, lnorthp;
     //------------------------------------------------------------------------//
     //
@@ -71,12 +71,6 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
     {
         LOG_ERRMSG("%s", "Error failed to verify data structures");
     }
-    if (cmt->nlats > 1 || cmt->nlons > 1)
-    {
-        LOG_ERRMSG("%s", "Error nlats > 1 | nlons > 1 not done");
-        ierr = 1;
-        return ierr;
-    }
     // Warn in case hypocenter is outside of grid-search
     if (cmt_props.verbose > 1 &&
         (SA_dep < cmt->srcDepths[0] || SA_dep > cmt->srcDepths[cmt->ndeps-1]))
@@ -84,8 +78,8 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
         LOG_WARNMSG("%s", "Warning hypocenter isn't in grid search!");
     }
     // Initialize result
-    nlld = cmt->nlats*cmt->nlons*cmt->ndeps;
-    cmt->opt_indx =-1;
+    nlld = cmt->nlats * cmt->nlons * cmt->ndeps;
+    cmt->opt_indx = -1;
     // Synthetics as a function of depth
     array_zeros64f_work(cmt->nsites*nlld, cmt->EN);
     array_zeros64f_work(cmt->nsites*nlld, cmt->NN);
@@ -99,7 +93,7 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
     array_zeros64f_work(nlld, cmt->l2);
     array_zeros64f_work(nlld, cmt->pct_dc);
     array_zeros64f_work(nlld, cmt->objfn);
-    array_zeros64f_work(6*nlld, cmt->mts);
+    array_zeros64f_work(6 * nlld, cmt->mts);
     array_zeros64f_work(nlld, cmt->str1);
     array_zeros64f_work(nlld, cmt->str2);
     array_zeros64f_work(nlld, cmt->dip1);
@@ -110,7 +104,7 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
     // Require there is a sufficient amount of data to invert
     luse = memory_calloc8l(cmt_data.nsites);
     l1 = 0;
-    for (k=0; k<cmt_data.nsites; k++)
+    for (k = 0; k < cmt_data.nsites; k++)
     {
         wtu = cmt_data.wtu[k];
         wtn = cmt_data.wtn[k];
@@ -133,6 +127,7 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
         goto ERROR;
     }
     // Set space
+    nlatlon = cmt->nlats * cmt->nlons;
     utmRecvNorthing = memory_calloc64f(l1);
     utmRecvEasting  = memory_calloc64f(l1);
     staAlt  = memory_calloc64f(l1);
@@ -142,20 +137,28 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
     uWts    = memory_calloc64f(l1);
     nWts    = memory_calloc64f(l1);
     eWts    = memory_calloc64f(l1);
-    nEst    = memory_calloc64f(l1*cmt->ndeps);
-    eEst    = memory_calloc64f(l1*cmt->ndeps);
-    uEst    = memory_calloc64f(l1*cmt->ndeps);
+    nEst    = memory_calloc64f(l1 * nlld);
+    eEst    = memory_calloc64f(l1 * nlld);
+    uEst    = memory_calloc64f(l1 * nlld);
+    utmSrcNorthings = memory_calloc64f(nlatlon);
+    utmSrcEastings  = memory_calloc64f(nlatlon);
     // Get the source location
     zone_loc = cmt_props.utm_zone; // Use input UTM zone
     if (zone_loc ==-12345){zone_loc =-1;} // Figure it out
-    core_coordtools_ll2utm(SA_lat, SA_lon,
-                           &y1, &x1,
-                           &lnorthp, &zone_loc);
-    utmSrcNorthing = y1;
-    utmSrcEasting = x1;
+    for (ilon = 0; ilon < cmt->nlons; ilon++) {
+        for (ilat = 0; ilat < cmt->nlats; ilat++) {
+            ilatLon = ilon * cmt->nlats + ilat;
+            core_coordtools_ll2utm(SA_lat + cmt->srcLats[ilat],
+                                   SA_lon + cmt->srcLons[ilon],
+                                   &y1, &x1,
+                                   &lnorthp, &zone_loc);
+            utmSrcNorthings[ilatLon] = y1; 
+            utmSrcEastings[ilatLon] = x1;
+        }
+    }
     // Get cartesian positions and observations onto local arrays
     l1 = 0;
-    for (k=0; k<cmt_data.nsites; k++)
+    for (k = 0; k < cmt_data.nsites; k++)
     {
         if (!luse[k]){continue;}
         // Get the recevier UTM
@@ -184,8 +187,8 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
                                cmt->ndeps, cmt->nlats, cmt->nlons,
                                cmt_props.verbose,
                                cmt_props.ldeviatoric,
-                               &utmSrcEasting,
-                               &utmSrcNorthing,
+                               utmSrcEastings,
+                               utmSrcNorthings,
                                cmt->srcDepths,
                                utmRecvEasting,
                                utmRecvNorthing,
@@ -200,27 +203,6 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
                                eEst,
                                uEst,
                                cmt->mts);
-/*
-    ierr = core_cmt_depthGridSearch(l1, cmt->ndeps,
-                                    cmt_props.verbose,
-                                    cmt_props.ldeviatoric,
-                                    utmSrcEasting,
-                                    utmSrcNorthing,
-                                    cmt->srcDepths,
-                                    utmRecvEasting,
-                                    utmRecvNorthing,
-                                    staAlt,
-                                    nOffset,
-                                    eOffset,
-                                    uOffset,
-                                    nWts,
-                                    eWts,
-                                    uWts,
-                                    nEst,
-                                    eEst,
-                                    uEst,
-                                    cmt->mts);
-*/
     if (ierr != 0)
     {   
         LOG_ERRMSG("%s", "Error in CMT gridsearch!");
@@ -229,10 +211,10 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
     }
     // Get the estimates and observations
     i = 0;
-    for (k=0; k<cmt->nsites; k++)
+    for (k = 0; k < cmt->nsites; k++)
     {
         cmt->lsiteUsed[k] = luse[k];
-        if (!luse[k]){continue;}
+        if (!luse[k]) {continue;}
         cmt->Ninp[k] = nOffset[i];
         cmt->Einp[k] = eOffset[i];
         cmt->Uinp[k] = uOffset[i];
@@ -247,39 +229,39 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
      shared(cmt, eOffset, eEst, l1, luse, nOffset, nEst, uOffset, uEst) \
      reduction(+:ierr), default(none) 
 #endif
-    for (ilon=0; ilon<cmt->nlons; ilon++)
+    for (ilon = 0; ilon < cmt->nlons; ilon++)
     {
-        for (ilat=0; ilat<cmt->nlats; ilat++)
+        for (ilat = 0; ilat < cmt->nlats; ilat++)
         {
-            for (idep=0; idep<cmt->ndeps; idep++)
+            for (idep = 0; idep < cmt->ndeps; idep++)
             {
                 // Get location in arrays
-                indx = ilon*cmt->ndeps*cmt->nlats
-                     + ilat*cmt->ndeps 
+                indx = ilon * cmt->ndeps * cmt->nlats
+                     + ilat * cmt->ndeps 
                      + idep;
                 // Compute the L2 norm
                 sum_res2 = 0.0;
 #ifdef _OPENMP
                 #pragma omp simd reduction(+:sum_res2)
 #endif
-                for (i=0; i<l1; i++)
+                for (i = 0; i < l1; i++)
                 {
-                    nres = nOffset[i] - nEst[indx*l1+i];
-                    eres = eOffset[i] - eEst[indx*l1+i];
-                    ures = uOffset[i] - uEst[indx*l1+i];
+                    nres = nOffset[i] - nEst[indx * l1 + i];
+                    eres = eOffset[i] - eEst[indx * l1 + i];
+                    ures = uOffset[i] - uEst[indx * l1 + i];
                     sum_res2 = sum_res2 + nres*nres + eres*eres + ures*ures;
                 }
                 sum_res2 = sqrt(sum_res2);
                 // Decompose the moment tensor
-                ierr1 = core_cmt_decomposeMomentTensor(1, &cmt->mts[6*idep],
+                ierr1 = core_cmt_decomposeMomentTensor(1, &cmt->mts[6 * indx],
                                                        &DC_pct,
-                                                       &cmt->Mw[idep],
-                                                       &cmt->str1[idep],
-                                                       &cmt->str2[idep],
-                                                       &cmt->dip1[idep],
-                                                       &cmt->dip2[idep],
-                                                       &cmt->rak1[idep],
-                                                       &cmt->rak2[idep]);
+                                                       &cmt->Mw[indx],
+                                                       &cmt->str1[indx],
+                                                       &cmt->str2[indx],
+                                                       &cmt->dip1[indx],
+                                                       &cmt->dip2[indx],
+                                                       &cmt->rak1[indx],
+                                                       &cmt->rak2[indx]);
                 if (ierr1 != 0)
                 {
                     LOG_ERRMSG("%s", "Error decomposing mt");
@@ -287,21 +269,21 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
                     continue;
                 }
                 // Prefer results with larger double couple percentages
-                cmt->l2[indx] = 0.5*sqrt(sum_res2);
+                cmt->l2[indx] = 0.5 * sqrt(sum_res2);
                 cmt->pct_dc[indx] = DC_pct;
                 cmt->objfn[indx] = sum_res2/DC_pct;
                 // Save the data
                 i = 0;
                 for (k=0; k<cmt->nsites; k++)
                 {
-                    cmt->NN[indx*cmt->nsites+k] = 0.0;
-                    cmt->EN[indx*cmt->nsites+k] = 0.0;
-                    cmt->UN[indx*cmt->nsites+k] = 0.0;
+                    cmt->NN[indx * cmt->nsites + k] = 0.0;
+                    cmt->EN[indx * cmt->nsites + k] = 0.0;
+                    cmt->UN[indx * cmt->nsites + k] = 0.0;
                     if (luse[k])
                     {
-                        cmt->NN[indx*cmt->nsites+k] = nEst[indx*l1+i];
-                        cmt->EN[indx*cmt->nsites+k] = eEst[indx*l1+i];
-                        cmt->UN[indx*cmt->nsites+k] = uEst[indx*l1+i];
+                        cmt->NN[indx * cmt->nsites + k] = nEst[indx * l1 + i];
+                        cmt->EN[indx * cmt->nsites + k] = eEst[indx * l1 + i];
+                        cmt->UN[indx * cmt->nsites + k] = uEst[indx * l1 + i];
                         i = i + 1;
                     }
                }
@@ -316,7 +298,7 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
     // Get the optimimum index
     { /*vk needed for more stringent c++ compiler*/
       enum isclError_enum isclerr = (enum isclError_enum)ierr;
-      cmt->opt_indx = array_argmin64f(cmt->ndeps, cmt->objfn, &isclerr); // TODO: cmt->ndeps = nlld
+      cmt->opt_indx = array_argmin64f(nlld, cmt->objfn, &isclerr); 
     }
     if (cmt->ndeps < nlld)
     {

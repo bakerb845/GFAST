@@ -104,6 +104,8 @@ int core_cmt_initialize(struct GFAST_cmt_props_struct props,
     cmt->rak1      = memory_calloc64f(nlld); //ndeps*nlats*nlons);
     cmt->rak2      = memory_calloc64f(nlld); //ndeps*nlats*nlons);
     cmt->Mw        = memory_calloc64f(nlld); //ndeps*nlats*nlons);
+    cmt->srcLats   = memory_calloc64f(cmt->nlats); //nlats);
+    cmt->srcLons   = memory_calloc64f(cmt->nlons); //nlons);
     cmt->srcDepths = memory_calloc64f(cmt->ndeps); //ndeps);
     cmt->EN        = memory_calloc64f(cmt->nsites*nlld); //nsites*ndeps*nlats*nlons);
     cmt->NN        = memory_calloc64f(cmt->nsites*nlld); //nsites*ndeps*nlats*nlons);
@@ -113,9 +115,21 @@ int core_cmt_initialize(struct GFAST_cmt_props_struct props,
     cmt->Uinp      = memory_calloc64f(cmt->nsites);
     cmt->lsiteUsed = memory_calloc8l(cmt->nsites);
     /* TODO fix me */
-    for (i=0; i<cmt->ndeps; i++)
+    for (i = 0; i < cmt->ndeps; i++)
     {
         cmt->srcDepths[i] = (double) (i + 1);
+    }
+    // srcLats is a relative array centered at 0, to be added to the input latitude
+    // The first latitude will be -dLat*(nlats - 1)/2
+    for (i = 0; i < cmt->nlats; i++)
+    {
+        cmt->srcLats[i] = props.dLat * (i - (cmt->nlats - 1) / 2);
+    }
+    // srcLons is a relative array centered at 0, to be added to the input longitude
+    // The first longitude will be -dLon*(nlons - 1)/2
+    for (i = 0; i < cmt->nlons; i++)
+    {
+        cmt->srcLons[i] = props.dLon * (i - (cmt->nlons - 1) / 2);
     }
     return 0;
 }

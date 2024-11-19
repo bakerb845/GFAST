@@ -330,6 +330,8 @@ struct GFAST_cmtResults_struct
 		       all depths [ndeps*nlats*nlons].
 		       \f$ \lambda \in [-180,180] \f$ */
   double *Mw;        /*!< Moment magnitude for all depths [ndeps*nlats*nlons] */
+  double *srcLats;   /*!< Source latitudes in grid search (degrees) [nlats] */
+  double *srcLons;   /*!< Source longitudes in grid search (degrees) [nlons] */
   double *srcDepths; /*!< Source depths in moment tensor inversion grid
 		       search (km) [ndeps] */
   double *EN;        /*!< Estimates on east component. The estimate

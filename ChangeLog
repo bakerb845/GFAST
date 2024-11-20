@@ -1,0 +1,92 @@
+version 1.2.6 2024-11-13  Carl Ulberg   <ulbergc@uw.edu>
+    * Summary:
+      - Add explicit ActiveMQ MsgTimeToLive config option for GFAST message sender
+      - Remove deprecated ActiveMQ files
+version 1.2.5 2024-07-26  Carl Ulberg   <ulbergc@uw.edu>
+    * Summary:
+      - Small bugfix in dmlibWrapper.cpp. Unit char[] length did not match what was expected in
+        src/xml/quakeML/units.c::__xml_units__enum2string(), so units in output xml were blank when
+        compiling on rhel9
+version 1.2.4 2023-08-03  Carl Ulberg   <ulbergc@uw.edu>
+    * Summary:
+      - Add internal/external message versions in driveGFAST. The internal versions start at v-1,
+        then decrement by 1 on every single iteration. The external version numbers start at v0,
+        and increment by 1 on pgd xml messages that are actually sent to the Solution Aggregator.
+        Every message is still saved in the run/out directory - if the message was sent to the SA,
+        it will have the positive, external version number. If it was not sent, it will have the
+        negative, internal version number.
+      - Change how pgd xml timestamp is defined. Previously it represented the time at the start
+        of the current iteration. Now it represents the time closest to when the message is
+        actually sent (really from when the message is generated, but then it is sent in the next
+        step).
+      - Add publish change thresholds. Among the other send filter logic, the change thresholds
+        ensure that GFAST won't send identical (or nearly identical) messages to the SA.
+      - Refactor some code out of driveGFAST (easier to unit test), fillCoreEventInfo and
+        sendXMLFilter
+      - New unit tests
+version 1.2.3 2023-04-10  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - Fully use Q channel with "goodness/use" flag. If configuration is set, GFAST will ignore
+        data points and PGD observations with a use flag of 0, as determined by the CWU/Fastlane
+        processing.
+      - Use "sleep" instead of "while true" loop for each 1s iteration. Saves processor time,
+        although may lead to slight creep in iteration start time.
+version 1.2.2 2022-12-28  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - Bring Q channel through processing. Not entirely set up, but the Q channel is mostly
+        available when calculating PGD, along with the 6 other channels: ENZ/ENZ uncertainty.
+version 1.2.1 2022-11-28  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - Add hashmap to tb2 processing to speed up get/unpack messages.
+      - Add raw observation uncertainty thresholds in PGD processing. This is intended to handle
+        clock correction steps in the data.
+version 1.2.0 2022-10-04  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - Add GFAST to ShakeAlert repo
+      - Use DMMessageReceiver for reading AMQ messages.
+      - Add GFAST to ShakeAlert unit test coverage report. 
+      - Add config options for turning on/off pgd/cmt/ff processing. 
+      - Reduce hdf5 archive size
+### Versions before this were in the PNSN github repo at https://github.com/pnsn/GFAST ###
+version 1.1.10 2022-07-27  Carl Ulberg   <ulbergc@uw.edu>
+    * Summary:
+      - logging updates, etc before adding to ShakeAlert repo
+version 1.1.9 2022-06-29  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - pgd_mag_sigma throttling and updated instance header
+version 1.1.8 2022-05-27  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - add 'assoc' attribute to pgd xml
+version 1.1.7 2022-04-28  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - min/max pgd thresholds
+version 1.1.6 2022-04-01  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - update cmt quakeml
+version 1.1.5 2022-03-01  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - add time/mag based magnitude uncertainty
+version 1.1.4b 2022-02-18  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - throttle based on time-varying pgd_obs
+version 1.1.4 2022-01-14  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - throttle based on pgd_obs
+version 1.1.3b 2021-12-22  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - use nan uncert
+version 1.1.3 2021-12-02  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - Throttle xml based on SA mag
+version 1.1.2 2021-11-17  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - Add strike, dip to ff xml message (using old xml writer)
+version 1.1.1 2021-11-09  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - bug fix from 1.1.0 to only add pgd observations that were used in pgd inversion
+version 1.1.0 2021  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - Use dmlib to encode pgd xml, with pgd observations
+version 1.0.0 2021  Carl Ulberg    <ulbergc@uw.edu>
+    * Summary:
+      - Initial merge of SAdev and 2020 branches from GFAST PNSN github repo

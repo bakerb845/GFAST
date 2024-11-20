@@ -50,10 +50,6 @@ void activeMQ_producer_finalize(void *producerIn);
 /* Send a text message */
 int activeMQ_producer_sendMessage(void *producerIn,
                                   const char *message);
-/* Convenience function to set the tcp URI request */
-char *activeMQ_setTcpURIRequest(const char *url,
-                                const int msReconnect,
-                                const int maxAttempts);
 /* Initialize the ActiveMQ producer */
 void *activeMQ_producer_initialize(const char AMQuser[],
                                    const char AMQpassword[],
@@ -63,6 +59,11 @@ void *activeMQ_producer_initialize(const char AMQuser[],
                                    const bool clientAck,
                                    const int verbose,
                                    int *ierr);
+/* Convenience function to set the tcp URI request */
+char *activeMQ_setTcpURIRequest(const char *url,
+                                const int msReconnect,
+                                const int maxAttempts);
+
 
 #ifndef __cplusplus
 #define GFAST_activeMQ_consumer_initialize(...)       \

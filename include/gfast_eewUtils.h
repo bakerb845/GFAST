@@ -96,6 +96,31 @@ void eewUtils_setLogFileNames(const char *eventid,
                               char infoLogFileName[PATH_MAX],
                               char debugLogFileName[PATH_MAX],
                               char warnLogFileName[PATH_MAX]);
+/* Fill a coreInfo struct with the given values */
+int eewUtils_fillCoreEventInfo(
+    const char *evid,
+    const int version,
+    const double SA_lat,
+    const double SA_lon,
+    const double SA_depth,
+    const double SA_mag,
+    const double SA_time,
+    const int num_stations,
+    struct coreInfo_struct *core);
+/* Helper function for eewUtils_sendXMLFilter, check change thresholds */
+bool eewUtils_changeThresholdsExceeded(
+    const struct GFAST_props_struct *props,
+    const struct coreInfo_struct *core,
+    const struct coreInfo_struct *last_sent_core);
+/* Determine if PGD message should be sent */
+bool eewUtils_sendXMLFilter(
+    const struct GFAST_props_struct *props,
+    const struct GFAST_shakeAlert_struct *SA,
+    const struct GFAST_pgdResults_struct *pgd,
+    const struct GFAST_peakDisplacementData_struct *pgd_data,
+    const struct coreInfo_struct *core,
+    const struct coreInfo_struct *last_sent_core,
+    const double age_of_event);
 
 #define GFAST_eewUtils_driveCMT(...)       \
               eewUtils_driveCMT(__VA_ARGS__)

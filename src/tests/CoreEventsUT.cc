@@ -10,8 +10,8 @@
 
 #include "gfast.h"
 
-// test freeEvents, getMinOriginTime, newEvent, printEvent, removeCancelledEvent,
-// removeExpiredEvent, removeExpiredEvents, syncXMLStatusWithEvents, updateEvent
+// test freeEvents, newEvent, printEvent,
+// removeExpiredEvent, removeExpiredEvents, syncXMLStatusWithEvents
 void get_SA(GFAST_shakeAlert_struct *SA) {
     // Initialize new event
     strcpy(SA->eventid, "12345\0");
@@ -148,4 +148,96 @@ TEST_F(CoreEventsFixture, testNewEventUpdatePreviousEvents) {
     ASSERT_EQ(1, xml_status.nev);
     EXPECT_STREQ(SA2.eventid, xml_status.SA_status[0].eventid);
 
+}
+
+TEST_F(CoreEventsFixture, testPrintEvent) {
+    EXPECT_NO_THROW(GFAST_core_events_printEvents(SA););
+}
+
+TEST_F(CoreEventsFixture, testRemoveExpiredEventsNone) {
+    int ret;
+    ret = core_events_removeExpiredEvents(100, SA.time, 1, &events);
+    EXPECT_EQ(0, ret);
+    EXPECT_EQ(0, events.nev);
+    EXPECT_EQ(0, xml_status.nev);
+}
+
+TEST_F(CoreEventsFixture, testRemoveExpiredEventsOneSync) {
+    lnewEvent = GFAST_core_events_newEvent(SA, &events, &xml_status);
+    EXPECT_EQ(1, events.nev);
+    EXPECT_EQ(1, xml_status.nev);
+    int ret;
+    ret = core_events_removeExpiredEvents(100, SA.time + 200, 1, &events);
+    EXPECT_EQ(1, ret);
+    EXPECT_EQ(0, events.nev);
+    EXPECT_EQ(1, xml_status.nev);
+
+    ret = core_events_syncXMLStatusWithEvents(&events, &xml_status);
+    EXPECT_EQ(0, xml_status.nev);
+}
+
+TEST_F(CoreEventsFixture, testRemoveExpiredEventsMultipleSync) {
+    // Make the second event
+    struct GFAST_shakeAlert_struct SA2;
+    memset(&SA2, 0, sizeof(struct GFAST_shakeAlert_struct));
+    get_SA(&SA2);
+    strcpy(SA2.eventid, "9876\0");
+    SA2.version = 0;
+    SA2.mag = 3.9;
+    SA2.time += 300;
+
+    // Add both events, verify
+    lnewEvent = GFAST_core_events_newEvent(SA, &events, &xml_status);
+    EXPECT_TRUE(lnewEvent);
+
+    lnewEvent = GFAST_core_events_newEvent(SA2, &events, &xml_status);
+    EXPECT_TRUE(lnewEvent);
+
+    EXPECT_EQ(2, events.nev);
+    EXPECT_EQ(2, xml_status.nev);
+
+    // Now remove one
+    int ret;
+    ret = core_events_removeExpiredEvents(100, SA.time + 200, 1, &events);
+    EXPECT_EQ(1, ret);
+    EXPECT_EQ(1, events.nev);
+    EXPECT_EQ(2, xml_status.nev);
+
+    ret = core_events_syncXMLStatusWithEvents(&events, &xml_status);
+    EXPECT_EQ(1, xml_status.nev);
+}
+
+TEST_F(CoreEventsFixture, testRemoveExpiredEventExists) {
+    lnewEvent = GFAST_core_events_newEvent(SA, &events, &xml_status);
+    EXPECT_EQ(1, events.nev);
+    EXPECT_EQ(1, xml_status.nev);
+
+    struct GFAST_shakeAlert_struct SArem;
+    memset(&SArem, 0, sizeof(struct GFAST_shakeAlert_struct));
+    memcpy(&SArem, &SA, sizeof(struct GFAST_shakeAlert_struct));
+
+    int ret;
+    ret = core_events_removeExpiredEvent(100, SA.time + 200, 1, SArem, &events);
+    EXPECT_EQ(1, ret);
+    EXPECT_EQ(0, events.nev);
+    EXPECT_EQ(1, xml_status.nev);
+}
+
+TEST_F(CoreEventsFixture, testRemoveExpiredEventNoExists) {
+    lnewEvent = GFAST_core_events_newEvent(SA, &events, &xml_status);
+    EXPECT_EQ(1, events.nev);
+    EXPECT_EQ(1, xml_status.nev);
+
+    struct GFAST_shakeAlert_struct SA2;
+    memset(&SA2, 0, sizeof(struct GFAST_shakeAlert_struct));
+    get_SA(&SA2);
+    strcpy(SA2.eventid, "9876\0");
+    SA2.version = 0;
+    SA2.mag = 3.9;
+
+    int ret;
+    ret = core_events_removeExpiredEvent(100, SA.time + 200, 1, SA2, &events);
+    EXPECT_EQ(0, ret);
+    EXPECT_EQ(1, events.nev);
+    EXPECT_EQ(1, xml_status.nev);
 }

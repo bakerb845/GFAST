@@ -231,6 +231,12 @@ void core_properties_print(struct GFAST_props_struct props)
         } else {
             LOG_DEBUGMSG("%s Will allow any E raw sigma values in pd calculations", lspace);
         }
+        if (props.pgd_props.q_value_threshold >= 0) {
+            LOG_DEBUGMSG("%s Will ignore pd values if Q value < %d",
+                lspace, props.pgd_props.q_value_threshold);
+        } else {
+            LOG_DEBUGMSG("%s Will allow any Q values in pd calculations", lspace);
+        }
         LOG_DEBUGMSG("%s Will throttle messages below SA mag %f",
                     lspace, props.pgd_props.SA_mag_threshold);
         LOG_DEBUGMSG("%s Will throttle messages above pgd mag sigma %f",
@@ -242,6 +248,42 @@ void core_properties_print(struct GFAST_props_struct props)
                 lspace, props.pgd_props.maximum_pgd_cm);
         LOG_DEBUGMSG("%s GFAST Maximum stations to include assoc tag: %d",
                 lspace, props.pgd_props.max_assoc_stations);
+
+        // Change thresholds to prevent sending the same (or very similar) solution
+        bool change_thresholds_not_set = true;
+        if (props.pgd_props.change_threshold_mag >= 0) {
+            change_thresholds_not_set = false;
+            LOG_DEBUGMSG("%s Change threshold, magnitude: %f",
+                lspace, props.pgd_props.change_threshold_mag);
+        }
+        if (props.pgd_props.change_threshold_mag_uncer >= 0) {
+            change_thresholds_not_set = false;
+            LOG_DEBUGMSG("%s Change threshold, magnitude uncertainty: %f",
+                lspace, props.pgd_props.change_threshold_mag_uncer);
+        }
+        if (props.pgd_props.change_threshold_lat >= 0) {
+            change_thresholds_not_set = false;
+            LOG_DEBUGMSG("%s Change threshold, latitude: %f",
+                lspace, props.pgd_props.change_threshold_lat);
+        }
+        if (props.pgd_props.change_threshold_lon >= 0) {
+            change_thresholds_not_set = false;
+            LOG_DEBUGMSG("%s Change threshold, longitude: %f",
+                lspace, props.pgd_props.change_threshold_lon);
+        }
+        if (props.pgd_props.change_threshold_orig_time >= 0) {
+            change_thresholds_not_set = false;
+            LOG_DEBUGMSG("%s Change threshold, origin time: %f (s)",
+                lspace, props.pgd_props.change_threshold_orig_time);
+        }
+        if (props.pgd_props.change_threshold_num_stations >= 0) {
+            change_thresholds_not_set = false;
+            LOG_DEBUGMSG("%s Change threshold, number of stations: %d",
+                lspace, props.pgd_props.change_threshold_num_stations);
+        }
+        if (change_thresholds_not_set) {
+            LOG_DEBUGMSG("%s Change thresholds not set!", lspace);
+        }
     }
     else
     {

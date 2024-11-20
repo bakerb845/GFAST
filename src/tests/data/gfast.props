@@ -10,7 +10,7 @@ metaDataFile=data/merged_chanfile_coord.dat
 #SA_events_dir=xxxxx
 SA_output_dir=data
 #output_interval_mins=1,2,3,4,5,10
-#siteMaskFile=xxxxx
+siteMaskFile=data/site_mask_file.dat
 # File with station names and sampling periods
 #dtfile=GFAST_streams_dt.txt
 # ElarmS message file
@@ -97,17 +97,36 @@ pgd_window_vel = 3.0
 pgd_min_sites = 4
 
 # Message throttling logic and related
+# Lookup table for non-density corrected value to generate magnitude 
+# uncertainty based on time and magnitude
 sigmaLookupFile = data/M99.txt
+# Lookup table for time-dependant PGD thresholds 
+# columns: time (s) | threshold (cm) | n stations
+pgdThresholdLookupFile = data/pgd_threshold_PW.txt
+# Positional uncertainty thresholds for including peak displacement observations
+# If not specified, allow any or NAN uncertainties
+rawSigmaThresholdLookupFile = data/raw_sigma_threshold_PW.txt
 
 # If defined, don't send xml if pgd_sigma is greater than this value
 pgd_sigma_throttle = 0.5
 # Message throttling logic
-SA_mag_threshold = -5.0
+SA_mag_threshold = 6.0
 
 # Minimum and maximum thresholds for using pgd values in inversion, in cm
 minimum_pgd_cm = 0.0
 maximum_pgd_cm = 3500.0
 max_assoc_stations = 6
+
+# Change thresholds to decide when to send a message, assuming other throttles
+# pass. If any of these are met or exceeded, a new message would be sent. If 
+# none are exceeded, message would not be sent.
+# If not present, threshold will be ignored
+change_threshold_mag = 0.05
+change_threshold_mag_uncer = 0.05
+change_threshold_lat = 0.05
+change_threshold_lon = 0.05
+change_threshold_orig_time = 1
+change_threshold_num_stations = 1
 
 ################################################################################
 #                            CMT/Finite Fault Properties                       #

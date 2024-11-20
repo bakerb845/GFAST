@@ -76,6 +76,43 @@ TEST(CoreData, testReadMetaDataFileWithMetaDataNetworks) {
     free(metaDataNetworks);
 }
 
+TEST(CoreData, testReadSiteMaskFile) {
+    const char *metaDataFile;
+    const char *siteMaskFile;
+    char **metaDataNetworks;
+    int ierr;
+    struct GFAST_data_struct gps_data;
+
+    // initialize
+    metaDataFile = "data/merged_chanfile_coord.dat\0";
+    siteMaskFile = "data/site_mask_file.dat\0";
+    memset(&gps_data, 0, sizeof(struct GFAST_data_struct));
+    metaDataNetworks = NULL;
+
+    ierr = core_data_readMetaDataFile(metaDataFile,
+                                      metaDataNetworks,
+                                      0,
+                                      &gps_data);
+    EXPECT_EQ(0, ierr) << "Error reading sites file";
+    EXPECT_EQ(492, gps_data.stream_length);
+
+    ierr = core_data_readSiteMaskFile(siteMaskFile, 1, &gps_data);
+
+    // Verify the masks are correct
+    int npgd = 0, ncmt = 0, nff = 0;
+    for (int i = 0; i < gps_data.stream_length; i++) {
+        npgd += !gps_data.data[i].lskip_pgd;
+        ncmt += !gps_data.data[i].lskip_cmt;
+        nff  += !gps_data.data[i].lskip_ff;
+    }
+    EXPECT_EQ(489, npgd);
+    EXPECT_EQ(490, ncmt);
+    EXPECT_EQ(491, nff);
+
+    // finalize
+    GFAST_core_data_finalize(&gps_data);
+}
+
 TEST(CoreData, testInitialize) {
     char propfilename[1024];
     int ierr, i;

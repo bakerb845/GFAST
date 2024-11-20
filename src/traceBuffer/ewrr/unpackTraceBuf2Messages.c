@@ -94,7 +94,7 @@ int traceBuffer_ewrr_unpackTraceBuf2Messages(
 
     //char **msg_logos = (char **)malloc(sizeof(char *) * nRead);
     //char msg_logos[nRead][15];
-    char buf[15];
+    char buf[256];
     char *logo, *nscl;
 
     int debug = 0;

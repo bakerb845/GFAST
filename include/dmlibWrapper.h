@@ -58,7 +58,7 @@ extern "C" {
     @brief instantiates and starts new DMMessageSender for events.
     @return 1 if success, 0 if already connected and -1 for error
   */
-  int startEventSender(const char topic[]);
+  int startEventSender(const char topic[], const double msg_ttl);
   /*!
     @brief stops active DMMessageSender for events.
     Stops and destroys DMMessageSender object.

@@ -97,7 +97,10 @@ bool core_events_newEvent(struct GFAST_shakeAlert_struct SA,
       // MTH: Same thing for xml output status structs
       // Create a status output_status from incoming SA eventid
       strcpy(output_status.eventid, SA.eventid);
-      output_status.version=-1;  /*will increment to 0 on first xml update*/
+      output_status.internal_version = 0;  /*will decrement to -1 on first xml update*/
+      output_status.external_version = -1;  /*will increment to 0 on first xml update*/
+      memset(&output_status.last_sent_core, 0, sizeof(struct coreInfo_struct));
+
       // Append this output_status to the incoming xml_status list of records
       Xtemp.nev = nev0 + 1;
       Xtemp.SA_status = (struct GFAST_xml_output_status *) calloc((size_t) Xtemp.nev, sizeof(struct GFAST_xml_output_status));

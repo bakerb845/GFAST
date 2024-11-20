@@ -9,7 +9,6 @@
 #include "iscl/memory/memory.h"
 #include "iscl/os/os.h"
 #include "iscl/time/time.h"
-#include "H5public.h"
 #include <dirent.h>
 #include "dmlibWrapper.h"
 
@@ -56,6 +55,7 @@ void printProgramInfo(const char *fcnm) {
 #ifdef ENABLE_PLOG
     LOG_MSG("%s", message);
 #else
+    // Need to use printf until GFAST_core_properties_initialize is called
     printf("%s\n", message);
 #endif
     free(message);
@@ -218,7 +218,6 @@ int main(int argc, char **argv)
     if (USE_AMQ) {
         activeMQ_start();  // start library
         /* dmlib startup */
-        
         if (USE_DMLIB) {
             /* 
             Start connection, to be used by DMMessageSender.
@@ -298,10 +297,12 @@ int main(int argc, char **argv)
 
             /*start message sender*/
             if (props.verbose > 0) {
-                LOG_MSG("%s: Initializing event sender on %s...", 
-                    fcnm, props.activeMQ_props.destinationTopic);
+                LOG_MSG("%s: Initializing event sender on %s, time to live %fs ...", 
+                    fcnm, props.activeMQ_props.destinationTopic, props.activeMQ_props.msg_ttl);
             }
-            ierr = startEventSender(props.activeMQ_props.destinationTopic);
+            ierr = startEventSender(
+                props.activeMQ_props.destinationTopic,
+                props.activeMQ_props.msg_ttl);
             if (ierr == 0) {
                 LOG_ERRMSG("%s: Attempted to re-initialize active event sender object", fcnm);
             }
@@ -387,6 +388,8 @@ int main(int argc, char **argv)
 
         if (tloop < props.waitTime) {
             usleep((props.waitTime - tloop) * 1000 * 1000);
+            // Put in a continue here since t1 is reset at the top of the loop
+            // Want to make sure it is representing the actual start
             continue;
         }
         else if ((props.waitTime > 0.0) && (tloop >= 2 * props.waitTime)) {

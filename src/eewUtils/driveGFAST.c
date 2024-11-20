@@ -394,7 +394,7 @@ int eewUtils_driveGFAST(const double currentTime,
             bool send_pgd = false;
 
             // Change depth, mag to match optimal pgd (by variance reduction)
-            pgdOpt = array_argmax64f(pgd->ndeps, pgd->dep_vr_pgd, &ierr);
+            pgdOpt = array_argmax64f(pgd->ndeps * pgd->nlats * pgd->nlons, pgd->dep_vr_pgd, &ierr);
             core.depth = pgd->srcDepths[pgdOpt];
             core.mag = pgd->mpgd[pgdOpt];
             core.magUncer = pgd->mpgd_sigma[pgdOpt];

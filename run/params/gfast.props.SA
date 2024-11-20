@@ -90,11 +90,13 @@ dist_tolerance = 0.5
 # If PGD value falls below dist_tol this is the
 # default PGD value given in cm (must be positive)
 dist_default = 0.01
-#some search variables
+# Some grid search variables
 deltaLatitude = 0.1
 deltaLongitude = 0.1
+# nlats/nlons will be enforced to be odd. Grid search location will be centered on input
 nlats_in_pgd_gridSearch = 1
 nlons_in_pgd_gridSearch = 1
+# depths start at 0 and increase by 1 km to (ndepths_in_pgd_gridSearch - 1)
 ndepths_in_pgd_gridSearch = 10
 # These are the defaults:
 pgd_window_vel = 3.0
@@ -149,11 +151,13 @@ change_threshold_num_stations = 1
 [CMT]
 # Should CMT be processed?
 do_cmt = 0
-#some search variables
+# Some grid search variables
 deltaLatitude = 0.1
 deltaLongitude = 0.1
+# nlats/nlons will be enforced to be odd. Grid search location will be centered on input
 nlats_in_cmt_gridSearch = 1
 nlons_in_cmt_gridSearch = 1
+# depths start at 0 and increase by 1 km to (ndepths_in_cmt_gridSearch - 1)
 ndepths_in_cmt_gridSearch = 10
 # These are the defaults:
 cmt_window_vel = 2.0

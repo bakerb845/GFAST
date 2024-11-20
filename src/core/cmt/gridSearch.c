@@ -161,12 +161,12 @@ int core_cmt_gridSearch(const int l1,
      reduction(+:ierr), shared(nEst, eEst, uEst, mts) \
      default(none)
 #endif
-    for (ilon=0; ilon<nlons; ilon++)
+    for (ilon = 0; ilon < nlons; ilon++)
     {
         // Scan through the latitudes (northings)
-        for (ilat=0; ilat<nlats; ilat++)
+        for (ilat = 0; ilat < nlats; ilat++)
         {
-            ilatLon = ilon*nlats + ilat;
+            ilatLon = ilon * nlats + ilat;
             ierr1 = core_cmt_depthGridSearch(l1, ndeps,
                                              verbose,
                                              deviatoric,

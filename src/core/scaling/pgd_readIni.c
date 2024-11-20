@@ -78,8 +78,7 @@ int core_scaling_pgd_readIni(const char *propfilename,
          = iniparser_getdouble(ini, var, 0.1);
     if (pgd_props->dLat < 0.0)
     {
-        LOG_ERRMSG("Error PGD latitude serach %f must be positive",
-                   pgd_props->dLat);
+        LOG_ERRMSG("Error PGD latitude search delta %f must be positive", pgd_props->dLat);
         goto ERROR;
     }
     setVarName(group, "deltaLongitude\0", var);
@@ -87,7 +86,7 @@ int core_scaling_pgd_readIni(const char *propfilename,
          = iniparser_getdouble(ini, var, 0.1);
     if (pgd_props->dLon < 0.0)
     {
-        LOG_ERRMSG("Error PGD longitudes %f must be positive", pgd_props->dLon);
+        LOG_ERRMSG("Error PGD longitude search delta %f must be positive", pgd_props->dLon);
         goto ERROR;
     }
     setVarName(group, "nlats_in_pgd_gridSearch\0", var);
@@ -95,7 +94,7 @@ int core_scaling_pgd_readIni(const char *propfilename,
          = iniparser_getint(ini, var, 1);
     if (pgd_props->ngridSearch_lats < 1)
     {
-        LOG_ERRMSG("Error PGD grid search depths %d must be positive",
+        LOG_ERRMSG("Error PGD grid search lats %d must be positive",
                    pgd_props->ngridSearch_lats);
         goto ERROR;
     }
@@ -110,7 +109,7 @@ int core_scaling_pgd_readIni(const char *propfilename,
          = iniparser_getint(ini, var, 1);
     if (pgd_props->ngridSearch_lons < 1)
     {
-        LOG_ERRMSG("Error PGD grid search depths %d must be positive",
+        LOG_ERRMSG("Error PGD grid search lons %d must be positive",
                    pgd_props->ngridSearch_lons);
         goto ERROR;
     }

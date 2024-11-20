@@ -61,7 +61,7 @@ int core_cmt_readIni(const char *propfilename,
     cmt_props->dLat = iniparser_getdouble(ini, var, 0.1);
     if (cmt_props->dLat < 0.0)
     {   
-        LOG_ERRMSG("Error CMT latitude serach %f must be positive",
+        LOG_ERRMSG("Error CMT latitude search delta %f must be positive",
                    cmt_props->dLat);
         goto ERROR;
     }
@@ -69,7 +69,7 @@ int core_cmt_readIni(const char *propfilename,
     cmt_props->dLon = iniparser_getdouble(ini, var, 0.1);
     if (cmt_props->dLon < 0.0)
     {   
-        LOG_ERRMSG("Error CMT longitudes %f must be positive",
+        LOG_ERRMSG("Error CMT longitude search delta %f must be positive",
                    cmt_props->dLon);
         goto ERROR;
     }

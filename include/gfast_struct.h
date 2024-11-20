@@ -309,38 +309,40 @@ struct GFAST_ffResults_struct
 
 struct GFAST_cmtResults_struct
 {
-  double *l2;        /*!< L_2 objective function at all depths [ndeps] */
-  double *pct_dc;    /*!< Percent double couple at each depth [ndeps] */
+  double *l2;        /*!< L_2 objective function at all depths [ndeps*nlats*nlons] */
+  double *pct_dc;    /*!< Percent double couple at each depth [ndeps*nlats*nlons] */
   double *objfn;     /*!< Objective function at all depths = l2/pct_dc */
   double *mts;       /*!< Holds the NED moment tensor terms packed
 		       \f$ \{m_{xx}, m_{yy}, m_{zz},
-		       m_{xy}, m_{xz}, m_{yz} \} \f$.  [6*ndeps] */
+		       m_{xy}, m_{xz}, m_{yz} \} \f$.  [6*ndeps*nlats*nlons] */
   double *str1;      /*!< Strike (degrees) on first nodal plane for
-		       all depths [ndeps]. \f$ \phi \in [0,360] \f$ */
+		       all depths [ndeps*nlats*nlons]. \f$ \phi \in [0,360] \f$ */
   double *str2;      /*!< Strike (degrees) on second nodal plane for
-		       all depths [ndeps]. \f$ \phi \in [0,360] \f$ */
+		       all depths [ndeps*nlats*nlons]. \f$ \phi \in [0,360] \f$ */
   double *dip1;      /*!< Dip (degrees) on first nodal plane for
-		       all depths [ndeps]. \f$ \delta \in [0,90] \f$ */
+		       all depths [ndeps*nlats*nlons]. \f$ \delta \in [0,90] \f$ */
   double *dip2;      /*!< Dip (degrees) on second nodal plane for
-		       all depths [ndeps]. \f$ \delta \in [0,90] \f$ */
+		       all depths [ndeps*nlats*nlons]. \f$ \delta \in [0,90] \f$ */
   double *rak1;      /*!< Rake (degrees) on first nodal plane for
-		       all depths [ndeps].
+		       all depths [ndeps*nlats*nlons].
 		       \f$ \lambda \in [-180,180] \f$ */
   double *rak2;      /*!< Rake (degrees) on second nodal plane for 
-		       all depths [ndeps].
+		       all depths [ndeps*nlats*nlons].
 		       \f$ \lambda \in [-180,180] \f$ */
-  double *Mw;        /*!< Moment magnitude for all depths [ndeps] */
+  double *Mw;        /*!< Moment magnitude for all depths [ndeps*nlats*nlons] */
+  double *srcLats;   /*!< Source latitudes in grid search (degrees) [nlats] */
+  double *srcLons;   /*!< Source longitudes in grid search (degrees) [nlons] */
   double *srcDepths; /*!< Source depths in moment tensor inversion grid
 		       search (km) [ndeps] */
   double *EN;        /*!< Estimates on east component. The estimate
 		       for the i'th site at the j'th depth is accessed by
-		       j*sites+i [ndeps*nsites] */
+		       j*sites+i [ndeps*nlats*nlons*nsites] */
   double *NN;        /*!< Estimates on north component.  The estimate
 		       for the i'th site at the j'th depth is accessed by 
-		       j*nsites+i [ndeps*nsites] */
+		       j*nsites+i [ndeps*nlats*nlons*nsites] */
   double *UN;        /*!< Estimates on vertical component.  The estimate
 		       for the i'th site at the j'th depth is accessed by
-		       j*nsites+i [ndeps*nsites] */
+		       j*nsites+i [ndeps*nlats*nlons*nsites] */
   double *Einp;      /*!< Observed input east displacements [nsites] */
   double *Ninp;      /*!< Observed input north displacements [nsites] */
   double *Uinp;      /*!< Observed input vertical displacements [nsites] */
@@ -355,24 +357,24 @@ struct GFAST_cmtResults_struct
 
 struct GFAST_pgdResults_struct
 {
-  double *mpgd;      /*!< PGD magnitude at id'th depth [ndeps] */
-  double *mpgd_sigma;/*!< PGD magnitude uncertainty at id'th depth [ndeps] */
-  double *mpgd_vr;   /*!< PGD variance reduction at id'th depth [ndeps] */
+  double *mpgd;      /*!< PGD magnitude at id'th depth [ndeps*nlats*nlons] */
+  double *mpgd_sigma;/*!< PGD magnitude uncertainty at id'th depth [ndeps*nlats*nlons] */
+  double *mpgd_vr;   /*!< PGD variance reduction at id'th depth [ndeps*nlats*nlons] */
   double *dep_vr_pgd;/*!< PGD variance reduction at id'th depth 
-		       normalized by the interquartile range [ndeps] */
+		       normalized by the interquartile range [ndeps*nlats*nlons] */
   double *UP;        /*!< PGD estimates for each source depth
-		       [nsites*ndeps] */
+		       [nsites*ndeps*nlats*nlons] */
   double *UPinp;     /*!< PGD observations for each site [nsites] */
   double *srcLats;   /*!< Source latitudes in grid search (degrees) [nlats] */
   double *srcLons;   /*!< Source longitudes in grid search (degrees) [nlons] */
   double *srcDepths; /*!< PGD source depths in grid search (km) [ndeps] */
-  double *srdist;    /*!< Source receiver distance (km) [ndeps*nsites] */
+  double *srdist;    /*!< Source receiver distance (km) [ndeps*nlats*nlons*nsites] */
   double *iqr;       /*!< interquartile range (75 - 25) of the weighted
-		       residuals at each depth [ndeps] */
+		       residuals at each depth [ndeps*nlats*nlons] */
   bool *lsiteUsed;   /*!< If true then the isite'th site from the 
 		       site list was used in the PGD estimation [nsites] */
   int nlats;         /*!< Number of latitudes in grid search */
-  int nlons;         /*!< Number of longitudes in grid serach */
+  int nlons;         /*!< Number of longitudes in grid search */
   int ndeps;         /*!< Number of depths in PGD estimation */ 
   int nsites;        /*!< Should equal GFAST_data_struct's stream_length */
 };

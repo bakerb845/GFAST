@@ -12,7 +12,7 @@
  * @param[in] nlats            Number of latitudes in grid search.
  * @param[in] nlons            Number of longitudes in grid search.
  * @param[in] verbose          Controls verbosity (< 2 is quiet).
- * @param[in] dist_tol         Displacement tolerance (cm).  If the displacment
+ * @param[in] dist_tol         Displacement tolerance (cm).  If the displacement
  *                             is less than dist_tol it will be set to dist_tol.
  * @param[in] disp_def         Displacement default (cm) if d < dist_tol.
  * @param[in] utmSrcNorthings  Source UTM northing positions (m).  This is an 
@@ -145,12 +145,12 @@ int core_scaling_pgd_gridSearch(const int l1, const int ndeps,
      reduction(+:ierr), shared(srdist, M, VR, iqr, Uest) \
      default(none)
 #endif
-    for (ilon=0; ilon<nlons; ilon++)
+    for (ilon = 0; ilon < nlons; ilon++)
     {
         // Scan through the latitudes (northings)
-        for (ilat=0; ilat<nlats; ilat++)
+        for (ilat = 0; ilat < nlats; ilat++)
         {
-            ilatLon = ilon*nlats + ilat;
+            ilatLon = ilon * nlats + ilat;
             ierr1 = core_scaling_pgd_depthGridSearch(l1, ndeps,
                                                      verbose,
                                                      dist_tol,

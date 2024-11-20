@@ -39,7 +39,7 @@ int core_scaling_pgd_initialize(struct GFAST_pgd_props_struct pgd_props,
             LOG_ERRMSG("No lats in PGD grid search %d",
                        pgd_props.ngridSearch_lats);
         }
-        if (pgd->nlats < 1)
+        if (pgd->nlons < 1)
         {
             LOG_ERRMSG("No lons in PGD grid search %d",
                        pgd_props.ngridSearch_lons);
@@ -99,21 +99,36 @@ int core_scaling_pgd_initialize(struct GFAST_pgd_props_struct pgd_props,
         if (gps_data.data[i].lskip_pgd){pgd_data->lmask[i] = true;}
     }
 
-    nloc = pgd->ndeps*pgd->nlats*pgd->nlons;
+    nloc = pgd->ndeps * pgd->nlats * pgd->nlons;
     pgd->mpgd       = memory_calloc64f(nloc);
     pgd->mpgd_sigma = memory_calloc64f(nloc);
     pgd->mpgd_vr    = memory_calloc64f(nloc);
     pgd->dep_vr_pgd = memory_calloc64f(nloc);
     pgd->srcDepths  = memory_calloc64f(pgd->ndeps);
+    pgd->srcLats    = memory_calloc64f(pgd->nlats);
+    pgd->srcLons    = memory_calloc64f(pgd->nlons);
     pgd->iqr        = memory_calloc64f(nloc);
-    pgd->UP         = memory_calloc64f(pgd->nsites*nloc);
-    pgd->srdist     = memory_calloc64f(pgd->nsites*nloc);
+    pgd->UP         = memory_calloc64f(pgd->nsites * nloc);
+    pgd->srdist     = memory_calloc64f(pgd->nsites * nloc);
     pgd->UPinp      = memory_calloc64f(pgd->nsites);
     pgd->lsiteUsed  = memory_calloc8l(pgd->nsites);
     // TODO: fix me and make customizable!
-    for (i=0; i<pgd->ndeps; i++)
+    for (i = 0; i < pgd->ndeps; i++)
     {
         pgd->srcDepths[i] = (double) i + 1;
     }
+    // srcLats is a relative array centered at 0, to be added to the input latitude
+    // The first latitude will be -dLat*(nlats - 1)/2
+    for (i = 0; i < pgd->nlats; i++)
+    {
+        pgd->srcLats[i] = pgd_props.dLat * (i - (pgd->nlats - 1) / 2);
+    }
+    // srcLons is a relative array centered at 0, to be added to the input longitude
+    // The first longitude will be -dLon*(nlons - 1)/2
+    for (i = 0; i < pgd->nlons; i++)
+    {
+        pgd->srcLons[i] = pgd_props.dLon * (i - (pgd->nlons - 1) / 2);
+    }
+
     return 0;
 }

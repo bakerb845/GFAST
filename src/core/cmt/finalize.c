@@ -26,6 +26,8 @@ void core_cmt_finalizeResults(struct GFAST_cmtResults_struct *cmt)
     memory_free64f(&cmt->rak1);
     memory_free64f(&cmt->rak2);
     memory_free64f(&cmt->Mw);
+    memory_free64f(&cmt->srcLats);
+    memory_free64f(&cmt->srcLons);
     memory_free64f(&cmt->srcDepths);
     memory_free64f(&cmt->EN);
     memory_free64f(&cmt->NN);

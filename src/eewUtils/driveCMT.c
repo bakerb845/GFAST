@@ -80,6 +80,9 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
     // Initialize result
     nlld = cmt->nlats * cmt->nlons * cmt->ndeps;
     cmt->opt_indx = -1;
+    cmt->opt_dep = __FLT_MIN__;
+    cmt->opt_lat = __FLT_MIN__;
+    cmt->opt_lon = __FLT_MIN__;
     // Synthetics as a function of depth
     array_zeros64f_work(cmt->nsites*nlld, cmt->EN);
     array_zeros64f_work(cmt->nsites*nlld, cmt->NN);
@@ -286,7 +289,14 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
                         cmt->UN[indx * cmt->nsites + k] = uEst[indx * l1 + i];
                         i = i + 1;
                     }
-               }
+                }
+                // print results
+                if (cmt_props.verbose > 2) {
+                    LOG_DEBUGMSG("CMT results (%d) for %.4f, %.4f, %.1f: str=[%.2f, %.2f], dip=[%.2f, %.2f], rake=[%.2f, %.2f], pct_dc=%.2f, objfn=%.2f",
+                        indx, cmt->srcLats[ilat] + SA_lat, cmt->srcLons[ilon]+ SA_lon, cmt->srcDepths[idep],
+                        cmt->str1[indx], cmt->str2[indx], cmt->dip1[indx], cmt->dip2[indx], cmt->rak1[indx], cmt->rak2[indx],
+                        cmt->pct_dc[indx], cmt->objfn[indx]);
+                }
            } // Loop on depths
        } // loop on latiudes
     } // loop on longitudes
@@ -300,10 +310,20 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
       enum isclError_enum isclerr = (enum isclError_enum)ierr;
       cmt->opt_indx = array_argmin64f(nlld, cmt->objfn, &isclerr); 
     }
-    if (cmt->ndeps < nlld)
-    {
-        LOG_WARNMSG("%s", "NEED to unpack opt_indx and make a cmt->opt_dep");
-    }
+    // Unpack opt_indx for lat, lon, depth
+    int rem;
+    idep = cmt->opt_indx % cmt->ndeps;
+    rem = (cmt->opt_indx - idep) / cmt->ndeps;
+    ilat = rem % cmt->nlats;
+    ilon = ((rem - ilat) / cmt->nlats) % cmt->nlons;
+
+    cmt->opt_dep = cmt->srcDepths[idep];
+    cmt->opt_lat = cmt->srcLats[ilat] + SA_lat;
+    cmt->opt_lon = cmt->srcLons[ilon] + SA_lon;
+    // if (cmt->ndeps < nlld)
+    // {
+    //     LOG_WARNMSG("%s", "NEED to unpack opt_indx and make a cmt->opt_dep");
+    // }
 ERROR:;
     memory_free8l(&luse);
     memory_free64f(&utmRecvNorthing);

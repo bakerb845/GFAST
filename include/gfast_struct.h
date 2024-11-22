@@ -330,8 +330,8 @@ struct GFAST_cmtResults_struct
 		       all depths [ndeps*nlats*nlons].
 		       \f$ \lambda \in [-180,180] \f$ */
   double *Mw;        /*!< Moment magnitude for all depths [ndeps*nlats*nlons] */
-  double *srcLats;   /*!< Source latitudes in grid search (degrees) [nlats] */
-  double *srcLons;   /*!< Source longitudes in grid search (degrees) [nlons] */
+  double *srcLats;   /*!< Relative source latitudes in grid search (degrees) [nlats] */
+  double *srcLons;   /*!< Relative source longitudes in grid search (degrees) [nlons] */
   double *srcDepths; /*!< Source depths in moment tensor inversion grid
 		       search (km) [ndeps] */
   double *EN;        /*!< Estimates on east component. The estimate
@@ -348,7 +348,10 @@ struct GFAST_cmtResults_struct
   double *Uinp;      /*!< Observed input vertical displacements [nsites] */
   bool *lsiteUsed;   /*!< If true then the isite'th site from the
 		       site list was used in the CMT estimation [nsite] */ 
-  int opt_indx;      /*!< Optimal index in depth grid search [0, ndeps) */
+  int opt_indx;      /*!< Optimal index in grid search [0, ndeps * nlats * nlons) */
+  double opt_lon;    /*!< Optimal longitude corresponding to opt_indx (degrees) */
+  double opt_lat;    /*!< Optimal latitude corresponding to opt_indx (degrees) */
+  double opt_dep;    /*!< Optimal depth corresponding to opt_indx (km) */
   int nlats;         /*!< Number of latitudes in grid search */
   int nlons;         /*!< Number of longitudes in grid serach */
   int ndeps;         /*!< Number of depths in grid search */
@@ -365,14 +368,18 @@ struct GFAST_pgdResults_struct
   double *UP;        /*!< PGD estimates for each source depth
 		       [nsites*ndeps*nlats*nlons] */
   double *UPinp;     /*!< PGD observations for each site [nsites] */
-  double *srcLats;   /*!< Source latitudes in grid search (degrees) [nlats] */
-  double *srcLons;   /*!< Source longitudes in grid search (degrees) [nlons] */
+  double *srcLats;   /*!< Relative source latitudes in grid search (degrees) [nlats] */
+  double *srcLons;   /*!< Relative source longitudes in grid search (degrees) [nlons] */
   double *srcDepths; /*!< PGD source depths in grid search (km) [ndeps] */
   double *srdist;    /*!< Source receiver distance (km) [ndeps*nlats*nlons*nsites] */
   double *iqr;       /*!< interquartile range (75 - 25) of the weighted
 		       residuals at each depth [ndeps*nlats*nlons] */
   bool *lsiteUsed;   /*!< If true then the isite'th site from the 
 		       site list was used in the PGD estimation [nsites] */
+  int opt_indx;      /*!< Optimal index in grid search [0, ndeps * nlats * nlons) */
+  double opt_lon;    /*!< Optimal longitude corresponding to opt_indx (degrees) */
+  double opt_lat;    /*!< Optimal latitude corresponding to opt_indx (degrees) */
+  double opt_dep;    /*!< Optimal depth corresponding to opt_indx (km) */
   int nlats;         /*!< Number of latitudes in grid search */
   int nlons;         /*!< Number of longitudes in grid search */
   int ndeps;         /*!< Number of depths in PGD estimation */ 

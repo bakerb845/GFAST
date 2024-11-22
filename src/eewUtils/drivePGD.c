@@ -45,7 +45,7 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
 {
     double *d, *srdist, *staAlt, *Uest, *utmRecvEasting, *utmRecvNorthing, *wts,
            iqrMin, *utmSrcEastings, *utmSrcNorthings, x1, x2, y1, y2;
-    int i, ilat, ilon, ilatLon, iloc, ierr, j, k, l1, nlatlon, nloc, zone_loc;
+    int i, indx, idep, ilat, ilon, ilatLon, iloc, ierr, j, k, l1, nlatlon, nloc, zone_loc;
     bool *luse, lnorthp;
     //------------------------------------------------------------------------//
     //
@@ -150,6 +150,10 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
     }
     // Null out results
     nloc = pgd->ndeps * pgd->nlats * pgd->nlons;
+    pgd->opt_indx = -1;
+    pgd->opt_dep = __FLT_MIN__;
+    pgd->opt_lat = __FLT_MIN__;
+    pgd->opt_lon = __FLT_MIN__;
     array_zeros64f_work(pgd->nsites, pgd->UPinp);
     array_zeros8l_work( pgd->nsites, pgd->lsiteUsed);
     array_zeros64f_work(nloc, pgd->mpgd);
@@ -270,27 +274,64 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
     int i99;
     for (i99 = 0; (i99 < pgd_props.n99) && (pgd_props.t99[i99] <= age_of_event); i99++) {}
     i99 = (i99 <= 0) ? 0 : i99 - 1;
-    for (iloc = 0; iloc < nloc; iloc++)
+    // for (iloc = 0; iloc < nloc; iloc++)
+    // {
+
+    for (ilon = 0; ilon < pgd->nlons; ilon++)
     {
-        if (pgd_props.n99 == 0) {
-            pgd->mpgd_sigma[iloc] = 0.5;
-        } else {
-            pgd->mpgd_sigma[iloc] = 0.5 * exp(pgd_props.m99[i99] - pgd->mpgd[iloc]);
-        }
-        pgd->dep_vr_pgd[iloc] = pgd->mpgd[iloc] * iqrMin / pgd->iqr[iloc];
-        j = 0;
-        for (i = 0; i < pgd->nsites; i++)
+        for (ilat = 0; ilat < pgd->nlats; ilat++)
         {
-            pgd->UP[iloc * pgd->nsites + i] = 0.0;
-            pgd->srdist[iloc * pgd->nsites + i] = 0.0;
-            if (luse[i])
+            for (idep = 0; idep < pgd->ndeps; idep++)
             {
-                pgd->UP[iloc * pgd->nsites + i] = Uest[iloc * l1 + j];
-                pgd->srdist[iloc * pgd->nsites + i] = srdist[iloc * l1 + j];
-                j = j + 1;
+                // Get location in arrays
+                indx = ilon * pgd->ndeps * pgd->nlats
+                     + ilat * pgd->ndeps 
+                     + idep;
+
+                if (pgd_props.n99 == 0) {
+                    pgd->mpgd_sigma[indx] = 0.5;
+                } else {
+                    pgd->mpgd_sigma[indx] = 0.5 * exp(pgd_props.m99[i99] - pgd->mpgd[indx]);
+                }
+                pgd->dep_vr_pgd[indx] = pgd->mpgd[indx] * iqrMin / pgd->iqr[indx];
+                j = 0;
+                for (i = 0; i < pgd->nsites; i++)
+                {
+                    pgd->UP[indx * pgd->nsites + i] = 0.0;
+                    pgd->srdist[indx * pgd->nsites + i] = 0.0;
+                    if (luse[i])
+                    {
+                        pgd->UP[indx * pgd->nsites + i] = Uest[indx * l1 + j];
+                        pgd->srdist[indx * pgd->nsites + i] = srdist[indx * l1 + j];
+                        j = j + 1;
+                    }
+                }
+
+                // print results
+                if (pgd_props.verbose > 2) {
+                    LOG_DEBUGMSG("PGD results (%d) for %.4f, %.4f, %.1f: Mpgd=%.3f, Mpgd_sigma=%.3f, dep_vr_pgd=%.3f",
+                        indx, pgd->srcLats[ilat] + SA_lat, pgd->srcLons[ilon]+ SA_lon, pgd->srcDepths[idep],
+                        pgd->mpgd[indx], pgd->mpgd_sigma[indx], pgd->dep_vr_pgd[indx]);
+                }
             }
         }
     }
+
+    { /*vk needed for more stringent c++ compiler*/
+      enum isclError_enum isclerr = (enum isclError_enum)ierr;
+      pgd->opt_indx = array_argmin64f(nloc, pgd->dep_vr_pgd, &isclerr); 
+    }
+    // Unpack opt_indx for lat, lon, depth
+    int rem;
+    idep = pgd->opt_indx % pgd->ndeps;
+    rem = (pgd->opt_indx - idep) / pgd->ndeps;
+    ilat = rem % pgd->nlats;
+    ilon = ((rem - ilat) / pgd->nlats) % pgd->nlons;
+
+    pgd->opt_dep = pgd->srcDepths[idep];
+    pgd->opt_lat = pgd->srcLats[ilat] + SA_lat;
+    pgd->opt_lon = pgd->srcLons[ilon] + SA_lon;
+
 ERROR:;
     memory_free64f(&d);
     memory_free64f(&utmRecvNorthing);

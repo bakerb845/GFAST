@@ -49,12 +49,15 @@ void core_scaling_pgd_finalizeResults(
     struct GFAST_pgdResults_struct *pgd)
 {
     memory_free64f(&pgd->mpgd);
+    memory_free64f(&pgd->mpgd_sigma);
     memory_free64f(&pgd->mpgd_vr);
     memory_free64f(&pgd->dep_vr_pgd);
     memory_free64f(&pgd->iqr);
     memory_free64f(&pgd->UP);
     memory_free64f(&pgd->UPinp);
     memory_free64f(&pgd->srcDepths);
+    memory_free64f(&pgd->srcLats);
+    memory_free64f(&pgd->srcLons);
     memory_free64f(&pgd->srdist);
     memory_free8l(&pgd->lsiteUsed);
     memset(pgd, 0, sizeof(struct GFAST_pgdResults_struct));

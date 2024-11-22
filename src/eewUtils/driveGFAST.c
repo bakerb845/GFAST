@@ -300,6 +300,19 @@ int eewUtils_driveGFAST(const double currentTime,
                 LOG_ERRMSG("%s", "Error computing PGD");
                 lpgdSuccess = false;
             }
+
+            // pgdOpt = array_argmax64f(pgd->ndeps * pgd->nlats * pgd->nlons, pgd->dep_vr_pgd, &ierr);
+            // core.depth = pgd->srcDepths[pgdOpt];
+            // core.mag = pgd->mpgd[pgdOpt];
+            // core.magUncer = pgd->mpgd_sigma[pgdOpt];
+            // core.depth = pgd->opt_dep;
+            // core.latitud
+            // core.mag = pgd->mpgd[pgd->opt_indx];
+            // core.magUncer = pgd->mpgd_sigma[pgd->opt_indx];
+
+            LOG_MSG("drivePGD optimal result: %.5f, %.5f, %.1f: %.3f, %.3f",
+                pgd->opt_lat, pgd->opt_lon, pgd->opt_dep, 
+                pgd->mpgd[pgd->opt_indx], pgd->mpgd_sigma[pgd->opt_indx]);
         }
         // Run the CMT inversion
         if (props.cmt_props.do_cmt && 
@@ -321,6 +334,12 @@ int eewUtils_driveGFAST(const double currentTime,
                 LOG_ERRMSG("%s", "Error computing CMT");
                 lcmtSuccess = false;
             }
+            LOG_MSG("driveCMT optimal result: %.5f, %.5f, %.1f, %.3f, [%.3f, %.3f], [%.3f, %.3f], [%.3f, %.3f]",
+                cmt->opt_lat, cmt->opt_lon,
+                cmt->opt_dep, cmt->Mw[cmt->opt_indx],
+                cmt->str1[cmt->opt_indx], cmt->str2[cmt->opt_indx],
+                cmt->dip1[cmt->opt_indx], cmt->dip2[cmt->opt_indx],
+                cmt->rak1[cmt->opt_indx], cmt->rak2[cmt->opt_indx]);
         }
         // If we got a CMT see if we can run a finite fault inversion  
         if (props.ff_props.do_ff &&
@@ -330,9 +349,11 @@ int eewUtils_driveGFAST(const double currentTime,
             if (props.verbose > 2) {
                 LOG_INFOMSG("Estimating finite fault for %s...", SA.eventid);
             }
-            ff->SA_lat = events->SA[iev].lat;
-            ff->SA_lon = events->SA[iev].lon;
-            ff->SA_dep = cmt->srcDepths[cmt->opt_indx]; // TODO make cmt->opt_dep
+            // ff->SA_lat = events->SA[iev].lat;
+            // ff->SA_lon = events->SA[iev].lon;
+            ff->SA_lat = cmt->opt_lat;
+            ff->SA_lon = cmt->opt_lon;
+            ff->SA_dep = cmt->opt_dep; // TODO make cmt->opt_dep
             ff->SA_mag = cmt->Mw[cmt->opt_indx];
             ff->str[0] = cmt->str1[cmt->opt_indx];
             ff->str[1] = cmt->str2[cmt->opt_indx];
@@ -341,9 +362,15 @@ int eewUtils_driveGFAST(const double currentTime,
             lffSuccess = true;
             LOG_MSG("%s", "calling driveFF");
             t_time = time_timeStamp();
+            // ierr = eewUtils_driveFF(props.ff_props,
+            //     SA.lat,
+            //     SA.lon,
+            //     *ff_data,
+            //     ff);
+            // Call with optimal grid search location
             ierr = eewUtils_driveFF(props.ff_props,
-                SA.lat,
-                SA.lon,
+                ff->SA_lat,
+                ff->SA_lon,
                 *ff_data,
                 ff);
             LOG_MSG("driveFF returned ierr=%d [Timing: %.3fs]",
@@ -394,11 +421,17 @@ int eewUtils_driveGFAST(const double currentTime,
             bool send_pgd = false;
 
             // Change depth, mag to match optimal pgd (by variance reduction)
-            pgdOpt = array_argmax64f(pgd->ndeps, pgd->dep_vr_pgd, &ierr);
-            core.depth = pgd->srcDepths[pgdOpt];
-            core.mag = pgd->mpgd[pgdOpt];
-            core.magUncer = pgd->mpgd_sigma[pgdOpt];
-            core.numStations = nsites_pgd;
+            // pgdOpt = array_argmax64f(pgd->ndeps * pgd->nlats * pgd->nlons, pgd->dep_vr_pgd, &ierr);
+            // core.depth = pgd->srcDepths[pgdOpt];
+            // core.mag = pgd->mpgd[pgdOpt];
+            // core.magUncer = pgd->mpgd_sigma[pgdOpt];
+            // core.numStations = nsites_pgd;
+
+            core.depth = pgd->opt_dep;
+            core.lat = pgd->opt_lat;
+            core.lon = pgd->opt_lon;
+            core.mag = pgd->mpgd[pgd->opt_indx];
+            core.magUncer = pgd->mpgd_sigma[pgd->opt_indx];
 
 #ifdef GFAST_USE_AMQ
             // Determine if message should be sent via ActiveMQ
@@ -513,9 +546,9 @@ int eewUtils_driveGFAST(const double currentTime,
                 props.anssNetwork,
                 props.anssDomain,
                 SA.eventid,
-                SA.lat,
-                SA.lon,
-                cmt->srcDepths[cmt->opt_indx],
+                cmt->opt_lat,
+                cmt->opt_lon,
+                cmt->opt_dep,
                 SA.time,
                 &cmt->mts[6*cmt->opt_indx],
                 &ierr);
@@ -549,8 +582,10 @@ int eewUtils_driveGFAST(const double currentTime,
             ipf = ff->preferred_fault_plane;
             nstrdip = ff->fp[ipf].nstr*ff->fp[ipf].ndip;
             // Reset depth and mag to be same as SA message.
-            core.depth = SA.dep;
-            core.mag = SA.mag;
+            // core.depth = SA.dep;
+            // core.mag = SA.mag;
+            core.depth = ff->SA_dep;
+            core.mag = ff->SA_mag;
             core.magUncer = 0.5;
             core.numStations = nsites_ff;
             ffXML = eewUtils_makeXML__ff(

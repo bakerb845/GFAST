@@ -23,7 +23,7 @@ endif
 LIBS    =  $(EW_LIB) $(ISCL_LIB) $(INIPARSER_LIB) $(XML_LIB) $(HDF5_LIB) $(COMPEARTH_LIB) \
 $(ACTIVEMQ_LIB) $(DM_LIB) $(APR_LIB) $(LAPACKE_LIB) $(CBLAS_LIB) $(FFTW_LIB) $(SSL_LIB) \
 $(XERCES_LIB) $(QLIB2_LIB) $(CRYPTO_LIB)
-SYSLIBS = -ldl -lm -lnsl -lrt -pthread -lz -lsz -lstdc++
+SYSLIBS = -ldl -lm -lrt -pthread -lz -lsz -lstdc++
 
 %.o:    %.c
 	$(cc) -c $< -o $@ $(UFLAGS) $(CFLAGS) $(DEBUG) $(INCL)

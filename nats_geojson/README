@@ -1,0 +1,28 @@
+Codes to test subscribing to NATS messages and parsing geogson in a way that could fit into GFAST
+Carl Ulberg
+1/23/24
+
+Requires a NATS server to be running on localhost
+See: https://docs.nats.io/running-a-nats-service/introduction/installation
+nats-server binary can also be found on eew-uw-dev1 at /home/ulbergc/WORK/go/bin/
+for other testing natscli can be installed with "go install github.com/nats-io/natscli/nats@latest"
+
+Compile with:
+> make -f Makefile.nats clean; make -f Makefile.nats all;
+
+Will create two binaries: 
+1) pub_geojson.c reads in a file (hard-coded as test_geojson_msgs01.txt) and
+write to a nats subject configured in geojson_utils.h as NATS_SUBJECT ("test.carl")
+2) sub_geojson.c runs a loop once a second and reads off of the nats subject until
+it is empty
+
+Binaries should be run in separate windows 
+- nats-server (run nats-server in separate window)
+- ./sub_geojson first (does 30 1-second loops then stops)
+- ./pub_geojson a couple seconds later (is set up to write ~100 messages/second for
+~20 seconds)
+- verify messages_received == messages_sent
+- can also verify traffic by running "nats sub test.carl" in a separate window, 
+first ensuring localhost is the current nats context: "nats context info"
+
+

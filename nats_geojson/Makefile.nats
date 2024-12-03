@@ -1,0 +1,41 @@
+
+# NATSDIR = /home/ulbergc/WORK/nats.c
+NATSDIR = /usr/local
+JANSSON_DIR = /home/ulbergc/WORK/libs/jansson-2.14/src
+
+CFLAGS = -Wall -g
+
+JSON_LIB=-DENABLE_JANSSON
+#JSON_LIB=-DENABLE_JSON_PARSER
+
+CFLAGS += $(JSON_LIB)
+
+BIN = pub_geojson sub_geojson
+
+INCL = \
+    -I./ \
+	-I$(NATSDIR)/include \
+	-I$(JANSSON_DIR)
+
+LIBS = \
+	-L$(NATSDIR)/lib64 -Wl,-rpath $(NATSDIR)/lib64 -lnats \
+	-L$(JANSSON_DIR)/.libs -Wl,-rpath $(JANSSON_DIR)/.libs -ljansson \
+	-pthread -L/usr/local/ssl/lib64 -lssl -lcrypto -lm
+
+all: $(BIN)
+
+sub: sub_geojson
+
+pub: pub_geojson
+
+%.o:   %.c
+	gcc -c $< -o $@ $(CFLAGS) $(INCL)
+
+pub_geojson: pub_geojson.o geojson_utils.o
+	gcc -o $@ $(CFLAGS) pub_geojson.o geojson_utils.o $(LIBS)
+
+sub_geojson: sub_geojson.o json.o
+	gcc -o $@ $(CFLAGS) sub_geojson.o $(LIBS) 
+	
+clean:
+	-rm -f *.o $(BIN)

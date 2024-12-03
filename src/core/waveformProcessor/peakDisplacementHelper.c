@@ -14,7 +14,7 @@
 /*!
  * @brief Waveform processor to estimate the peak displacement observed
  *        on a 3 channel GPS stream where the peak displacement at any
- *        sample is Euclidean norm of it's displacement.
+ *        sample is Euclidean norm of its displacement.
  *
  * @param[in] npts             number of points in time series
  * @param[in] dt               sampling period (s) of GPS buffers
@@ -23,21 +23,14 @@
  * @param[in] ubuff            vertical position [npts]
  * @param[in] nbuff            north position [npts]
  * @param[in] ebuff            east position [npts]
- * @param[in] usigmabuff       vertical position uncertainty [npts]
- * @param[in] nsigmabuff       north position uncertainty [npts]
- * @param[in] esigmabuff       east position uncertainty [npts]
  * @param[in] nMaxLeader       latest time index to start measurement in
  *                             case of nan's
  * @param[in] tmin             distance / svel_window (s)
  * @param[in] tmax             distance / min_svel_window (s)
  * 
  * @param[out] obsTime         epochal time of peak displacment (s)
- * @param[out] uMaxUncertainty peak vertical uncertainty at the reference
- *                             or peak displacement times (m)
- * @param[out] nMaxUncertainty peak north uncertainty at the reference
- *                             or peak displacement times (m)
- * @param[out] eMaxUncertainty peak east uncertainty at the reference
- *                             or peak displacement times (m)
+ * @param[out] iRef            index of reference value
+ * @param[out] iPeak           index of peak value
  * 
  *
  * @result the peak displacement observed on a trace.  this has the same

@@ -56,13 +56,16 @@ int read_pgd_results(const char *filenm,
     if (fgets(cline, sizeof(cline), infl) == NULL){goto ERROR;}
     sscanf(cline, "%lf %lf %lf\n", SA_lat, SA_lon, SA_dep);
     // pgd data
-    pgd_data->pd = ISCL_memory_calloc__double(pgd_data->nsites);
-    pgd_data->wt = ISCL_memory_calloc__double(pgd_data->nsites);
-    pgd_data->sta_lat = ISCL_memory_calloc__double(pgd_data->nsites);
-    pgd_data->sta_lon = ISCL_memory_calloc__double(pgd_data->nsites);
-    pgd_data->sta_alt = ISCL_memory_calloc__double(pgd_data->nsites);
-    pgd_data->lmask   = ISCL_memory_calloc__bool(pgd_data->nsites);
-    pgd_data->lactive = ISCL_memory_calloc__bool(pgd_data->nsites);
+    pgd_data->stnm = (char **)calloc((size_t) pgd_data->nsites,
+                                     sizeof(char *));
+    pgd_data->pd = memory_calloc64f(pgd_data->nsites);
+    pgd_data->wt = memory_calloc64f(pgd_data->nsites);
+    pgd_data->sta_lat = memory_calloc64f(pgd_data->nsites);
+    pgd_data->sta_lon = memory_calloc64f(pgd_data->nsites);
+    pgd_data->sta_alt = memory_calloc64f(pgd_data->nsites);
+    pgd_data->pd_time = memory_calloc64f(pgd_data->nsites);
+    pgd_data->lmask   = memory_calloc8l(pgd_data->nsites);
+    pgd_data->lactive = memory_calloc8l(pgd_data->nsites);
     for (i=0; i<pgd_data->nsites; i++)
     {
         memset(cline, 0, sizeof(cline));
@@ -70,8 +73,12 @@ int read_pgd_results(const char *filenm,
         sscanf(cline, "%lf %lf %lf %lf\n",
                &pgd_data->sta_lat[i], &pgd_data->sta_lon[i],
                &pgd_data->sta_alt[i], &pgd_data->pd[i]);
+        pgd_data->pd_time[i] = 0.0;
         pgd_data->wt[i] = 1.0;
         pgd_data->lactive[i] = true;
+        
+        pgd_data->stnm[i] = (char *)calloc(64, sizeof(char));
+        sprintf(pgd_data->stnm[i],"XX%02d", i);
     }
     // Results + depths in grid search
     pgd->nsites = pgd_data->nsites;
@@ -310,4 +317,56 @@ int read_ff_results(const char *fname,
     ierr = 0;
 ERROR:;
     return ierr;
+}
+
+void fill_gps_data(struct GFAST_data_struct *gps_data,
+                   const int k,
+                   const char *netw,
+                   const char *stat,
+                   const char *chan,
+                   const char *loc,
+                   const double lat,
+                   const double lon,
+                   const double elev,
+                   const double dt,
+                   const double gain,
+                   const int mpts) {
+    strcpy(gps_data->data[k].netw, netw);
+    strcpy(gps_data->data[k].stnm, stat);
+    strncpy(gps_data->data[k].chan[0], chan, 2);
+    strcat( gps_data->data[k].chan[0], "Z\0"); 
+    strncpy(gps_data->data[k].chan[1], chan, 2);
+    strcat( gps_data->data[k].chan[1], "N\0");
+    strncpy(gps_data->data[k].chan[2], chan, 2); 
+    strcat( gps_data->data[k].chan[2], "E\0");
+    strncpy(gps_data->data[k].chan[3], chan, 2); 
+    strcat( gps_data->data[k].chan[3], "3\0");
+    strncpy(gps_data->data[k].chan[4], chan, 2); 
+    strcat( gps_data->data[k].chan[4], "2\0");
+    strncpy(gps_data->data[k].chan[5], chan, 2); 
+    strcat( gps_data->data[k].chan[5], "1\0");
+    strncpy(gps_data->data[k].chan[6], chan, 2); 
+    strcat( gps_data->data[k].chan[6], "Q\0");
+    strcpy(gps_data->data[k].loc, loc);
+    gps_data->data[k].sta_lat = lat;
+    gps_data->data[k].sta_lon = lon;
+    gps_data->data[k].sta_alt = elev;
+    gps_data->data[k].dt = dt; 
+    gps_data->data[k].gain[0] = gain;
+    gps_data->data[k].gain[1] = gain;
+    gps_data->data[k].gain[2] = gain;
+    gps_data->data[k].gain[3] = gain;
+    gps_data->data[k].gain[4] = gain;
+    gps_data->data[k].gain[5] = gain;
+    gps_data->data[k].gain[6] = 1; // Quality channel has no gain
+
+    gps_data->data[k].maxpts = mpts;
+    gps_data->data[k].ubuff = memory_calloc64f(mpts);
+    gps_data->data[k].nbuff = memory_calloc64f(mpts);
+    gps_data->data[k].ebuff = memory_calloc64f(mpts);
+    gps_data->data[k].usigmabuff = memory_calloc64f(mpts);
+    gps_data->data[k].nsigmabuff = memory_calloc64f(mpts);
+    gps_data->data[k].esigmabuff = memory_calloc64f(mpts);
+    gps_data->data[k].qbuff = memory_calloc64f(mpts);
+    gps_data->data[k].tbuff = memory_calloc64f(mpts);
 }

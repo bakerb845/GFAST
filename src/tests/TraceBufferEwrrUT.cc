@@ -35,7 +35,7 @@ TEST(CoreTraceBuffer, testSetTb2DataFromGFAST) {
     ierr = traceBuffer_ewrr_settb2DataFromGFAST(&gps_data, &tb2Data);
     EXPECT_EQ(0, ierr) << "Error setting tb2Data";
 
-    EXPECT_GT(tb2Data.hashmap->hashsize, 0);
+    EXPECT_GT((int) tb2Data.hashmap->hashsize, 0);
 
     core_data_finalize(&gps_data);
 }

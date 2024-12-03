@@ -166,11 +166,13 @@ int core_scaling_pgd_readIni(const char *propfilename,
     ierr = core_scaling_readSigmaLookupFile(sigmaLookupFile,
                                             pgd_props);
 
+    // only use PGD observations if Q value >= this threshold
+    setVarName(group, "q_value_threshold\0", var);
+    pgd_props->q_value_threshold = iniparser_getint(ini, var, -1);
 
     // only send XML for pgd magnitude sigma below this threshold
     setVarName(group, "pgd_sigma_throttle\0", var);
     pgd_props->pgd_sigma_throttle = iniparser_getdouble(ini, var, 10);
-    // props->pgd_sigma_throttle  = iniparser_getdouble(ini, "general:pgd_sigma_throttle\0", 10);
     if (pgd_props->pgd_sigma_throttle <= 0)
     {
         LOG_ERRMSG("Error pgd_sigma_throttle must be positive: %f",
@@ -181,7 +183,6 @@ int core_scaling_pgd_readIni(const char *propfilename,
     // only send XML for SA magnitude above this threshold
     setVarName(group, "SA_mag_threshold\0", var);
     pgd_props->SA_mag_threshold = iniparser_getdouble(ini, var, -10.0);
-    // props->SA_mag_threshold  = iniparser_getdouble(ini, "general:SA_mag_threshold\0", -10.0);
 
     setVarName(group, "minimum_pgd_cm\0", var);
     pgd_props->minimum_pgd_cm = iniparser_getdouble(ini, var, -1.0);
@@ -200,6 +201,20 @@ int core_scaling_pgd_readIni(const char *propfilename,
         LOG_ERRMSG("%s", "Error max_assoc_stations must be positive!");
         goto ERROR;
     }
+
+    // Change thresholds to prevent sending the same (or very similar) message
+    setVarName(group, "change_threshold_mag\0", var);
+    pgd_props->change_threshold_mag = iniparser_getdouble(ini, var, -1.0);
+    setVarName(group, "change_threshold_mag_uncer\0", var);
+    pgd_props->change_threshold_mag_uncer = iniparser_getdouble(ini, var, -1.0);
+    setVarName(group, "change_threshold_lat\0", var);
+    pgd_props->change_threshold_lat = iniparser_getdouble(ini, var, -1.0);
+    setVarName(group, "change_threshold_lon\0", var);
+    pgd_props->change_threshold_lon = iniparser_getdouble(ini, var, -1.0);
+    setVarName(group, "change_threshold_orig_time\0", var);
+    pgd_props->change_threshold_orig_time = iniparser_getdouble(ini, var, -1.0);
+    setVarName(group, "change_threshold_num_stations\0", var);
+    pgd_props->change_threshold_num_stations = iniparser_getint(ini, var, -1);
 
     ERROR:;
     iniparser_freedict(ini);

@@ -33,7 +33,7 @@ int xml_epoch2string(double epoch, char cepoch[128])
     }
     sec = (double) nzsec + (double) nzmusec*1.e-6;
     sprintf(cepoch,
-            "%04d-%02d-%02dT%02d:%02d:%04.3fZ",
+            "%04d-%02d-%02dT%02d:%02d:%06.3fZ",
             nzyear, month, mday, nzhour, nzmin, sec);
     return 0;
 }

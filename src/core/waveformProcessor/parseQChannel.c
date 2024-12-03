@@ -66,3 +66,35 @@ int core_waveformProcessor_parseQChannelChi2CWUmap(
 
     return chimap;
 }
+
+
+/*!
+ * @brief Unpack the quality channel. The most recent definition as of 3/22/23 was:
+ *        Q = 100000*int(10*PDOP) + 1000*nsat + 10*fixtyp + goodness
+ * 
+ * @param[in] q_value          Q channel value. It is a double to stay consistent
+ *                             with other data buffers. But treated as integer here.
+ *
+ * @result the goodness value (0 or 1) - a combination of chi^2, nsats, clocks, etc.
+ *
+ * @author Brendan Crowell (PNSN) and Carl Ulberg (PNSN)
+ *
+ * @date Mar 2023
+ *
+ */
+int core_waveformProcessor_parseQChannelGoodness(
+    const double q_value)
+{
+    int goodness;
+    
+    // Extract the last 1 digit, should only be 0 or 1, so modulo 2 should work
+    if (q_value < 0) {
+        LOG_WARNMSG("parseQChannelChi2CWU - q_value is negative (%lf), changing to positive!",
+            q_value);
+        goodness = (int)(q_value * -1) % 2;
+    } else {
+        goodness = (int)(q_value) % 2;
+    }
+
+    return goodness;
+}

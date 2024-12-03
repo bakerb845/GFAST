@@ -33,6 +33,12 @@
  * (https://github.com/confluentinc/librdkafka)
  */
 
+/**
+ * Modified for Kafka consumer for GFAST, using abstraction to facilitate different types of
+ * connection.
+ * First version author: Jen Andrews
+ */
+
 #ifdef WINNT
 #include <window.h>
 #include <winuser.h>
@@ -74,21 +80,15 @@ static int is_printable(const char *buf, size_t size) {
 
 /*!
  * @brief Initializes kafka consumer.
- *
  * @param[in] hostname   Kafka server hostname.
- *
  * @param[out] rk        Kafka consumer handle
- *                         
  * @result 0 indicates success.
- *
- * @author 
- *
- * @copyright 
- *
  */
 int initialize_data_connection(
         data_conn_ptr *rk_call,
+        data_sub_ptr *sk_call,
         const struct dataconn_props_struct* props) {
+    sk_call = NULL;           /* Kafka does not need a continuous subscription pointer */
     rd_kafka_conf_t *conf;    /* Temporary configuration object */
     rd_kafka_resp_err_t err;  /* librdkafka API error code */
     char errstr[512];         /* librdkafka API error reporting buffer */
@@ -199,17 +199,12 @@ int initialize_data_connection(
 
 /*!
  * @brief Closes kafka consumer.
- *
  * @param[in] rk        Kafka consumer handle
- *                         
+ * @param[in] sk        NULL pointer
  * @result void
- *
- * @author 
- *
- * @copyright 
- *
  */
-void close_data_connection(data_conn_ptr rk) {
+void close_data_connection(data_conn_ptr rk,
+                           data_sub_ptr sk) {
     /* Close the consumer: commit final offsets and leave the group. */
     LOG_MSG("%s", "%% Closing consumer\n");
     rd_kafka_consumer_close(rk);
@@ -222,8 +217,11 @@ void close_data_connection(data_conn_ptr rk) {
 /*! 
  * @brief Reads all available messages from the kafka server/topic and returns data in expected
  * geojson format. Loop is synchronous/blocking.
+ * @param[in] rk        Kafka consumer handle
+ * @param[in] sk        NULL pointer
  */
-int get_data(data_conn_ptr rk) {
+int get_data(data_conn_ptr rk,
+             data_sub_ptr sk) {
     rd_kafka_message_t *rkm;
 
     /* Timeout: no message within 100ms,

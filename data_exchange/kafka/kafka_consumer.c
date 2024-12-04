@@ -221,53 +221,72 @@ void close_data_connection(data_conn_ptr rk,
  * @param[in] sk        NULL pointer
  */
 int get_data(data_conn_ptr rk,
-             data_sub_ptr sk) {
+             data_sub_ptr sk,
+             char* message_buffer,
+             int buffer_char_size) {
     rd_kafka_message_t *rkm;
+    int max_bytes = buffer_char_size * sizeof(char);
+    int message_size = 0;
+    int message_index = 0;
 
-    /* Timeout: no message within 100ms,
-     *  return. This short timeout allows
-     *  checking at frequent intervals.
-     */
-    rkm = rd_kafka_consumer_poll(rk, 200);
-    if (!rkm) {
-        return 1;
+    while (true) {
+      /* Timeout: no message within 100ms,
+       *  return. This short timeout allows
+       *  checking at frequent intervals.
+       */
+      rkm = rd_kafka_consumer_poll(rk, 200);
+      if (!rkm) {
+          return 0;
+      }
+
+      /* consumer_poll() will return either a proper message
+       * or a consumer error (rkm->err is set). */
+      if (rkm->err) {
+          /* Consumer errors are generally to be considered
+           * informational as the consumer will automatically
+           * try to recover from all types of errors. */
+          LOG_ERRMSG("%% Consumer error: %s\n",
+                  rd_kafka_message_errstr(rkm));
+          rd_kafka_message_destroy(rkm);
+          continue;
+      }
+
+      /* Proper message. */
+      // The function rd_kafka_message_leader_epoch() is only available for librdkafka versions
+      // 2.1 or higher, currently not available for standard debian Docker containers (to bookworm)
+      //printf("Message on %s [%" PRId32 "] at offset %" PRId64
+      //       " (leader epoch %" PRId32 "):\n",
+      //       rd_kafka_topic_name(rkm->rkt), rkm->partition,
+      //       rkm->offset, rd_kafka_message_leader_epoch(rkm));
+
+      /* Print the message key. */
+      if (rkm->key && is_printable(rkm->key, rkm->key_len)) {
+          LOG_MSG(" Key: %.*s\n", (int)rkm->key_len, (const char *)rkm->key);
+      } else if (rkm->key) {
+          LOG_MSG(" Key: (%d bytes)\n", (int)rkm->key_len);
+      }
+
+      /* Print the message value/payload. */
+      if (rkm->payload && is_printable(rkm->payload, rkm->len)) {
+          LOG_MSG(" Value: %.*s\n", (int)rkm->len, (const char *)rkm->payload);
+      } else if (rkm->payload) {
+          LOG_MSG(" Value: (%d bytes)\n", (int)rkm->len);
+      }
+
+      // JADEBUG //
+      /* Put payload into buffer for parsing */
+      if (message_size + (int)rkm->len > max_bytes) {
+          LOG_ERRMSG(" Unread messages in queue, buffer size exceeded (%d overflow)",
+              (int)rkm->len);
+          break;
+      }
+      memcpy(&message_buffer[message_index], (const char *)rkm->payload, rkm->len);
+      message_size += (int)rkm->len;
+      message_index += (int)rkm->len / sizeof(char);
+      // JADEBUG //
+
+      rd_kafka_message_destroy(rkm);
     }
-
-    /* consumer_poll() will return either a proper message
-     * or a consumer error (rkm->err is set). */
-    if (rkm->err) {
-        /* Consumer errors are generally to be considered
-         * informational as the consumer will automatically
-         * try to recover from all types of errors. */
-        LOG_ERRMSG("%% Consumer error: %s\n",
-                rd_kafka_message_errstr(rkm));
-        rd_kafka_message_destroy(rkm);
-        return 1;
-    }
-
-    /* Proper message. */
-    // The function rd_kafka_message_leader_epoch() is only available for librdkafka versions
-    // 2.1 or higher, currently not available for standard debian Docker containers (to bookworm)
-    //printf("Message on %s [%" PRId32 "] at offset %" PRId64
-    //       " (leader epoch %" PRId32 "):\n",
-    //       rd_kafka_topic_name(rkm->rkt), rkm->partition,
-    //       rkm->offset, rd_kafka_message_leader_epoch(rkm));
-
-    /* Print the message key. */
-    if (rkm->key && is_printable(rkm->key, rkm->key_len)) {
-        LOG_MSG(" Key: %.*s\n", (int)rkm->key_len, (const char *)rkm->key);
-    } else if (rkm->key) {
-        LOG_MSG(" Key: (%d bytes)\n", (int)rkm->key_len);
-    }
-
-    /* Print the message value/payload. */
-    if (rkm->payload && is_printable(rkm->payload, rkm->len)) {
-        LOG_MSG(" Value: %.*s\n", (int)rkm->len, (const char *)rkm->payload);
-    } else if (rkm->payload) {
-        LOG_MSG(" Value: (%d bytes)\n", (int)rkm->len);
-    }
-
-    rd_kafka_message_destroy(rkm);
 
     return 0;
 }

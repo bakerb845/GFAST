@@ -304,6 +304,11 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
                         pgd->UP[indx * pgd->nsites + i] = Uest[indx * l1 + j];
                         pgd->srdist[indx * pgd->nsites + i] = srdist[indx * l1 + j];
                         j = j + 1;
+                        if (pgd_props.verbose > 2) {
+                            LOG_DEBUGMSG("    sta obs (%d) for %.4f, %.4f, %.1f: %s obs:%.4f pred:%.4f",
+                                indx, pgd->srcLats[ilat] + SA_lat, pgd->srcLons[ilon]+ SA_lon, pgd->srcDepths[idep],
+                                pgd_data.stnm[i], pgd->UPinp[i], pgd->UP[indx * pgd->nsites + i]);
+                        }
                     }
                 }
 

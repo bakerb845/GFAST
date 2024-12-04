@@ -310,7 +310,8 @@ int eewUtils_driveGFAST(const double currentTime,
             // core.mag = pgd->mpgd[pgd->opt_indx];
             // core.magUncer = pgd->mpgd_sigma[pgd->opt_indx];
 
-            LOG_MSG("drivePGD optimal result: %.5f, %.5f, %.1f: %.3f, %.3f",
+            LOG_MSG("drivePGD optimal result (%d): %.5f, %.5f, %.1f: %.3f, %.3f",
+                pgd->opt_indx,
                 pgd->opt_lat, pgd->opt_lon, pgd->opt_dep, 
                 pgd->mpgd[pgd->opt_indx], pgd->mpgd_sigma[pgd->opt_indx]);
         }
@@ -334,7 +335,8 @@ int eewUtils_driveGFAST(const double currentTime,
                 LOG_ERRMSG("%s", "Error computing CMT");
                 lcmtSuccess = false;
             }
-            LOG_MSG("driveCMT optimal result: %.5f, %.5f, %.1f, %.3f, [%.3f, %.3f], [%.3f, %.3f], [%.3f, %.3f]",
+            LOG_MSG("driveCMT optimal result (%d): %.5f, %.5f, %.1f, %.3f, [%.3f, %.3f], [%.3f, %.3f], [%.3f, %.3f]",
+                cmt->opt_indx,
                 cmt->opt_lat, cmt->opt_lon,
                 cmt->opt_dep, cmt->Mw[cmt->opt_indx],
                 cmt->str1[cmt->opt_indx], cmt->str2[cmt->opt_indx],

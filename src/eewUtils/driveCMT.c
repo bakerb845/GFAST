@@ -288,6 +288,13 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
                         cmt->EN[indx * cmt->nsites + k] = eEst[indx * l1 + i];
                         cmt->UN[indx * cmt->nsites + k] = uEst[indx * l1 + i];
                         i = i + 1;
+                        if (cmt_props.verbose > 2) {
+                            LOG_DEBUGMSG("    sta obs (%d) for %.4f, %.4f, %.1f: %s ENUobs:[%.4f,%.4f,%.4f] ENUpred:[%.4f,%.4f,%.4f]",
+                                indx, cmt->srcLats[ilat] + SA_lat, cmt->srcLons[ilon]+ SA_lon, cmt->srcDepths[idep],
+                                cmt_data.stnm[i],
+                                cmt->Einp[k], cmt->Ninp[k], cmt->Uinp[k],
+                                cmt->EN[indx * cmt->nsites + k], cmt->NN[indx * cmt->nsites + k], cmt->UN[indx * cmt->nsites + k]);
+                        }
                     }
                 }
                 // print results

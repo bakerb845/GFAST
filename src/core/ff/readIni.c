@@ -115,6 +115,22 @@ int core_ff_readIni(const char *propfilename,
         LOG_ERRMSG("%s", "Error cannot shrink fault width");
         goto ERROR;
     }
+    setVarName(group, "ff_pct_large_m\0", var);
+    ff_props->large_m = iniparser_getdouble(ini, var, 10.0);
+    setVarName(group, "ff_flen_pct_large\0", var);
+    ff_props->flen_pct_large = iniparser_getdouble(ini, var, 40.0);
+    if (ff_props->flen_pct_large < 0.0)
+    {
+        LOG_ERRMSG("%s", "Error cannot shrink fault length");
+        goto ERROR;
+    }
+    setVarName(group, "ff_fwid_pct_large\0", var);
+    ff_props->fwid_pct_large = iniparser_getdouble(ini, var, 40.0);
+    if (ff_props->fwid_pct_large < 0.0)
+    {
+        LOG_ERRMSG("%s", "Error cannot shrink fault width");
+        goto ERROR;
+    }
     ierr = 0;
     ERROR:;
     iniparser_freedict(ini);

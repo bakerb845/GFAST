@@ -116,6 +116,9 @@ struct GFAST_ff_props_struct
 			 the offset. */
   double flen_pct;     /*!< Fault length safety factor. */
   double fwid_pct;     /*!< Fault width safety factor. */
+  double large_m;      /*!< Large magnitude above which to use flen_pct_large+fwid_pct_large. */
+  double flen_pct_large;     /*!< Fault length safety factor for large magnitudes. */
+  double fwid_pct_large;     /*!< Fault width safety factor for large magnitudes. */
   int verbose;         /*!< Controls verbosity - errors will always
 			 be output. \n
 			 = 1 -> Output generic information. \n

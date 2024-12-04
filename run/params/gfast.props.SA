@@ -186,6 +186,10 @@ ff_window_vel = 3.0
 ff_window_avg = 10.0
 ff_flen_pct = 10.0
 ff_fwid_pct = 10.0
+# large magnitude settings for safety factors
+ff_pct_large_m = 8.0
+ff_flen_pct_large = 40.0
+ff_fwid_pct_large = 40.0
 
 ################################################################################
 #                               ActiveMQ Properties                            #

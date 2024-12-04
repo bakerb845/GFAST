@@ -45,7 +45,8 @@ int eewUtils_driveFF(struct GFAST_ff_props_struct ff_props,
            *Mw, *nOffset, *NN, *nWts, *sslip, *sslip_unc, *staAlt,
            *strike, *uOffset, *utmRecvEasting, *utmRecvNorthing,
            *UN, *uWts, *vr, *width,
-           wte, wtn, wtu, x1, x2, y1, y2;
+           wte, wtn, wtu, x1, x2, y1, y2,
+           flen_pct, fwid_pct;
     int i, ierr, ierr1, if_off, ifp, io_off, k, l1, l2,
         ndip, nfp, nstr, zone_loc;
     bool *luse, lnorthp;
@@ -208,6 +209,24 @@ int eewUtils_driveFF(struct GFAST_ff_props_struct ff_props,
     {
         LOG_DEBUGMSG("%s", "Meshing fault plane...");
     }
+    if (ff->SA_mag > ff_props.large_m)
+    {
+        flen_pct = ff_props.flen_pct_large;
+        fwid_pct = ff_props.fwid_pct_large;
+        if (ff_props.verbose > 2)
+        {
+            LOG_DEBUGMSG("Magnitude is above the large M threshold (%.2f>%.2f), using flen_pct:%2f, fwid_pct:%2f",
+                ff->SA_mag, ff_props.large_m, flen_pct, fwid_pct);
+        }
+    } else
+    {
+        flen_pct = ff_props.flen_pct;
+        fwid_pct = ff_props.fwid_pct;
+        if (ff_props.verbose > 2)
+        {
+            LOG_DEBUGMSG("Using flen_pct:%2f, fwid_pct:%2f", flen_pct, fwid_pct);
+        }
+    }
 #ifdef PARALLEL_FF
     #pragma omp parallel for \
      private(ierr1, ifp) \
@@ -217,8 +236,8 @@ int eewUtils_driveFF(struct GFAST_ff_props_struct ff_props,
     for (ifp=0; ifp<ff->nfp; ifp++)
     {
         ierr1 = core_ff_meshFaultPlane(ff->SA_lat, ff->SA_lon, ff->SA_dep,
-                                       ff_props.flen_pct,
-                                       ff_props.fwid_pct,
+                                       flen_pct,
+                                       fwid_pct,
                                        ff->SA_mag, ff->str[ifp], ff->dip[ifp],
                                        ff->fp[ifp].nstr, ff->fp[ifp].ndip,
                                        zone_loc, ff_props.verbose,

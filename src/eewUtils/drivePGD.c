@@ -305,7 +305,7 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
                         pgd->srdist[indx * pgd->nsites + i] = srdist[indx * l1 + j];
                         j = j + 1;
                         if (pgd_props.verbose > 2) {
-                            LOG_DEBUGMSG("    sta obs (%d) for %.4f, %.4f, %.1f: %s obs:%.4f pred:%.4f",
+                            LOG_DEBUGMSG("    sta obs (%3d) for %.4f, %.4f, %.1f: %s obs:%.4f pred:%.4f",
                                 indx, pgd->srcLats[ilat] + SA_lat, pgd->srcLons[ilon]+ SA_lon, pgd->srcDepths[idep],
                                 pgd_data.stnm[i], pgd->UPinp[i], pgd->UP[indx * pgd->nsites + i]);
                         }
@@ -314,7 +314,7 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
 
                 // print results
                 if (pgd_props.verbose > 2) {
-                    LOG_DEBUGMSG("PGD results (%d) for %.4f, %.4f, %.1f: Mpgd=%.3f, Mpgd_sigma=%.3f, dep_vr_pgd=%.3f",
+                    LOG_DEBUGMSG("PGD results (%3d) for %.4f, %.4f, %.1f: Mpgd=%.3f, Mpgd_sigma=%.3f, dep_vr_pgd=%.3f",
                         indx, pgd->srcLats[ilat] + SA_lat, pgd->srcLons[ilon]+ SA_lon, pgd->srcDepths[idep],
                         pgd->mpgd[indx], pgd->mpgd_sigma[indx], pgd->dep_vr_pgd[indx]);
                 }

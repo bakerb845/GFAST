@@ -289,7 +289,7 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
                         cmt->UN[indx * cmt->nsites + k] = uEst[indx * l1 + i];
                         i = i + 1;
                         if (cmt_props.verbose > 2) {
-                            LOG_DEBUGMSG("    sta obs (%d) for %.4f, %.4f, %.1f: %s ENUobs:[%.4f,%.4f,%.4f] ENUpred:[%.4f,%.4f,%.4f]",
+                            LOG_DEBUGMSG("    sta obs (%3d) for %.4f, %.4f, %.1f: %s ENUobs:[%.4f,%.4f,%.4f] ENUpred:[%.4f,%.4f,%.4f]",
                                 indx, cmt->srcLats[ilat] + SA_lat, cmt->srcLons[ilon]+ SA_lon, cmt->srcDepths[idep],
                                 cmt_data.stnm[i],
                                 cmt->Einp[k], cmt->Ninp[k], cmt->Uinp[k],
@@ -299,7 +299,7 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
                 }
                 // print results
                 if (cmt_props.verbose > 2) {
-                    LOG_DEBUGMSG("CMT results (%d) for %.4f, %.4f, %.1f: str=[%.2f, %.2f], dip=[%.2f, %.2f], rake=[%.2f, %.2f], pct_dc=%.2f, objfn=%.2f",
+                    LOG_DEBUGMSG("CMT results (%3d) for %.4f, %.4f, %.1f: str=[%.2f, %.2f], dip=[%.2f, %.2f], rake=[%.2f, %.2f], pct_dc=%.2f, objfn=%.2f",
                         indx, cmt->srcLats[ilat] + SA_lat, cmt->srcLons[ilon]+ SA_lon, cmt->srcDepths[idep],
                         cmt->str1[indx], cmt->str2[indx], cmt->dip1[indx], cmt->dip2[indx], cmt->rak1[indx], cmt->rak2[indx],
                         cmt->pct_dc[indx], cmt->objfn[indx]);

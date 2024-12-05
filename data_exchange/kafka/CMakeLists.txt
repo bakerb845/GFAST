@@ -192,7 +192,7 @@ ADD_LIBRARY(gfast_static STATIC ${SRCS_CORE} ${SRCS_XML} ${SRCS_KAFKA} ${SRCS_AM
 
 ADD_EXECUTABLE(gfast_playback src/gfast_nz.c ${SRCS_EEW})
 IF (GFAST_USE_EW)
-ADD_EXECUTABLE(gfast_eew src/gfast_eew.c ${SRCS_EEW})
+ADD_EXECUTABLE(gfast_earthworm src/gfast_ew.c ${SRCS_EEW})
 ENDIF()
 
 # These are UW development files and kind of clunky
@@ -212,7 +212,7 @@ ENDIF (UW_AMAZON)
 # Let CMake know where the binaries will live 
 SET_TARGET_PROPERTIES(gfast_playback PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 IF (GFAST_USE_EW)
-SET_TARGET_PROPERTIES(gfast_eew PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+SET_TARGET_PROPERTIES(gfast_earthworm PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 ENDIF()
 
 # Unit tests
@@ -246,7 +246,7 @@ SET(LIB_BASE ${LIB_BASE} -lm -ldl -lpthread)
 # Add kafka library
 IF (GFAST_USE_KAFKA)
    SET(LIB_BASE ${LIB_BASE} ${KAFKA_LIBRARY})
-ENDIF()
+ENDIF(GFAST_USE_KAFKA)
 # Set the libraries to target link executables with
 IF (GFAST_USE_EW)
    SET(LIB_ALL ${EW_LIBRARY} ${LIB_BASE})
@@ -258,7 +258,7 @@ TARGET_LINK_LIBRARIES(gfast_shared ${LIB_BASE} ${EW_LIBRARY})
 TARGET_LINK_LIBRARIES(gfast_static ${LIB_BASE})
 # Target link the executables
 IF (GFAST_USE_EW)
-TARGET_LINK_LIBRARIES(gfast_eew      gfast_shared ${LIB_ALL} -lhdf5)
+TARGET_LINK_LIBRARIES(gfast_earthworm gfast_shared ${LIB_ALL} -lhdf5)
 ENDIF()
 TARGET_LINK_LIBRARIES(gfast_playback gfast_shared ${LIB_ALL} -lhdf5)
 TARGET_LINK_LIBRARIES(xcoreTests     gfast_shared ${LIB_ALL} -lhdf5)

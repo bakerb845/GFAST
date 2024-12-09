@@ -46,12 +46,22 @@ Example message:
 struct geojson_struct {
     long time;      /*!< Unix time in ms */
     int quality;    /*!< Quality channel (last digit is use flag) */
-    char *type;     /*!< Should be ENU */
-    char *sncl;     /*!< SNCL */
+    char type[8];     /*!< Should be ENU */
+    char sncl[15];     /*!< SNCL */
     double coor[3]; /*!< Positions (m) */
     double err[3];  /*!< Positional error (m) */
     double rate;    /*!< Sampling rate (s) */
 };
+
+void print_json_msg(struct geojson_struct *json_msg) {
+    printf("(%ld) ", json_msg->time);
+    printf("(%d) ", json_msg->quality);
+    printf("(%s) ", json_msg->type);
+    printf("(%s) ", json_msg->sncl);
+    printf("[%.3f,%.3f,%.3f] ", json_msg->coor[0], json_msg->coor[1], json_msg->coor[2]);
+    printf("[%.3f,%.3f,%.3f] ", json_msg->err[0], json_msg->err[1], json_msg->err[2]);
+    printf("(%f)\n", json_msg->rate);
+}
 
 #ifdef ENABLE_JSON_PARSER
 struct geojson_struct *unpackMessage(const char *msg, const int msg_size) {
@@ -101,51 +111,78 @@ struct geojson_struct *unpackMessage(const char *msg, const int msg_size) {
     // json_t *j_time, *j_Q, *j_type, *j_SNCL, *j_coor, *j_err, *j_rate;
     json_t *json_value;
 
+    // NOTE (CWU 12/5/24): when parsing numbers, use json_number_value. It will check if real or
+    // int and return in the form of a double. It can be casted afterwards to what you expect/want.
+
     // time
     json_value = json_object_get(root, "time");
     if (!json_is_number(json_value)) {
-        printf("time is not number, it is %s!\n", json_string_value(json_object_get(json_value, "type")));
+        printf("time is not a number, it is %s!\n", json_string_value(json_object_get(json_value, "type")));
     }
     json_msg->time = (long)json_number_value(json_value);
 
     // Q
     json_value = json_object_get(root, "Q");
-    if (!json_is_integer(json_value)) {
-        printf("Q is not integer, it is %s!\n", json_string_value(json_object_get(json_value, "type")));
+    if (!json_is_number(json_value)) {
+        printf("Q is not a number, it is %s!\n", json_string_value(json_object_get(json_value, "type")));
     }
-    json_msg->quality = json_integer_value(json_value);
+    json_msg->quality = (int)json_number_value(json_value);
 
     // type
     json_value = json_object_get(root, "type");
     if (!json_is_string(json_value)) {
-        printf("type is not string, it is %s!\n", json_string_value(json_object_get(json_value, "type")));
+        printf("type is not a string, it is %s!\n", json_string_value(json_object_get(json_value, "type")));
     }
-    // json_msg->type = json_string_value(json_value);
-    // memcpy(json_msg->type, json_string_value(json_value));
+    memcpy(json_msg->type, json_string_value(json_value), sizeof json_msg->type);
 
     // SNCL
+    json_value = json_object_get(root, "SNCL");
+    if (!json_is_string(json_value)) {
+        printf("SNCL is not a string, it is %s!\n", json_string_value(json_object_get(json_value, "type")));
+    }
+    memcpy(json_msg->sncl, json_string_value(json_value), sizeof json_msg->type);
 
     // coor
     json_value = json_object_get(root, "coor");
     if (!json_is_array(json_value)) {
-        printf("coor is not array, it is %s!\n", json_string_value(json_object_get(json_value, "type")));
+        printf("coor is not an array, it is %s!\n", json_string_value(json_object_get(json_value, "type")));
     }
     int i;
     for (i = 0; i < json_array_size(json_value); i++) {
         json_t *data;
         data = json_array_get(json_value, i);
 
-        if(!json_is_real(data)) {
-            printf("data is not real, it is %s!\n", json_string_value(json_object_get(data, "type")));
+        if(!json_is_number(data)) {
+            printf("data is not a number, it is %s!\n", json_string_value(json_object_get(data, "type")));
         }
-        printf("%f\n",json_real_value(data));
+        json_msg->coor[i] = (double)json_number_value(data);
     }
 
     // err
+    json_value = json_object_get(root, "err");
+    if (!json_is_array(json_value)) {
+        printf("err is not an array, it is %s!\n", json_string_value(json_object_get(json_value, "type")));
+    }
+    for (i = 0; i < json_array_size(json_value); i++) {
+        json_t *data;
+        data = json_array_get(json_value, i);
+
+        if(!json_is_number(data)) {
+            printf("data is not a number, it is %s!\n", json_string_value(json_object_get(data, "type")));
+        }
+
+        json_msg->err[i] = (double)json_number_value(data);
+    }
 
     // rate
+    json_value = json_object_get(root, "rate");
+    if (!json_is_number(json_value)) {
+        printf("rate is not a number it is %s!\n", json_string_value(json_object_get(json_value, "type")));
+    }
+    json_msg->rate = (double)json_number_value(json_value);
 
-
+    printf("%s\n", msg);
+    print_json_msg(json_msg);
 
     return json_msg;
 }

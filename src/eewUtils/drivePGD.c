@@ -304,11 +304,11 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
                         pgd->UP[indx * pgd->nsites + i] = Uest[indx * l1 + j];
                         pgd->srdist[indx * pgd->nsites + i] = srdist[indx * l1 + j];
                         j = j + 1;
-                        if (pgd_props.verbose > 2) {
-                            LOG_DEBUGMSG("    sta obs (%3d) for %.4f, %.4f, %.1f: %s obs:%.4f pred:%.4f",
-                                indx, pgd->srcLats[ilat] + SA_lat, pgd->srcLons[ilon]+ SA_lon, pgd->srcDepths[idep],
-                                pgd_data.stnm[i], pgd->UPinp[i], pgd->UP[indx * pgd->nsites + i]);
-                        }
+                        // if (pgd_props.verbose > 2) {
+                        //     LOG_DEBUGMSG("    sta obs (%3d) for %.4f, %.4f, %.1f: %s obs:%.4f pred:%.4f",
+                        //         indx, pgd->srcLats[ilat] + SA_lat, pgd->srcLons[ilon]+ SA_lon, pgd->srcDepths[idep],
+                        //         pgd_data.stnm[i], pgd->UPinp[i], pgd->UP[indx * pgd->nsites + i]);
+                        // }
                     }
                 }
 
@@ -336,6 +336,24 @@ int eewUtils_drivePGD(const struct GFAST_pgd_props_struct pgd_props,
     pgd->opt_dep = pgd->srcDepths[idep];
     pgd->opt_lat = pgd->srcLats[ilat] + SA_lat;
     pgd->opt_lon = pgd->srcLons[ilon] + SA_lon;
+
+    if (pgd_props.verbose > 2) {
+        // Get location in arrays
+        indx = ilon * pgd->ndeps * pgd->nlats
+             + ilat * pgd->ndeps 
+             + idep;
+        for (i = 0; i < pgd->nsites; i++)
+        {
+            pgd->UP[indx * pgd->nsites + i] = 0.0;
+            pgd->srdist[indx * pgd->nsites + i] = 0.0;
+            if (luse[i])
+            {
+                LOG_DEBUGMSG("    sta obs (%3d) for %.4f, %.4f, %.1f: %s obs:%.4f pred:%.4f",
+                    indx, pgd->srcLats[ilat] + SA_lat, pgd->srcLons[ilon]+ SA_lon, pgd->srcDepths[idep],
+                    pgd_data.stnm[i], pgd->UPinp[i], pgd->UP[indx * pgd->nsites + i]);
+            }
+        }
+    }
 
 ERROR:;
     memory_free64f(&d);

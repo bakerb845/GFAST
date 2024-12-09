@@ -288,13 +288,13 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
                         cmt->EN[indx * cmt->nsites + k] = eEst[indx * l1 + i];
                         cmt->UN[indx * cmt->nsites + k] = uEst[indx * l1 + i];
                         i = i + 1;
-                        if (cmt_props.verbose > 2) {
-                            LOG_DEBUGMSG("    sta obs (%3d) for %.4f, %.4f, %.1f: %s ENUobs:[%.4f,%.4f,%.4f] ENUpred:[%.4f,%.4f,%.4f]",
-                                indx, cmt->srcLats[ilat] + SA_lat, cmt->srcLons[ilon]+ SA_lon, cmt->srcDepths[idep],
-                                cmt_data.stnm[i],
-                                cmt->Einp[k], cmt->Ninp[k], cmt->Uinp[k],
-                                cmt->EN[indx * cmt->nsites + k], cmt->NN[indx * cmt->nsites + k], cmt->UN[indx * cmt->nsites + k]);
-                        }
+                        // if (cmt_props.verbose > 2) {
+                        //     LOG_DEBUGMSG("    sta obs (%3d) for %.4f, %.4f, %.1f: %s ENUobs:[%.4f,%.4f,%.4f] ENUpred:[%.4f,%.4f,%.4f]",
+                        //         indx, cmt->srcLats[ilat] + SA_lat, cmt->srcLons[ilon]+ SA_lon, cmt->srcDepths[idep],
+                        //         cmt_data.stnm[k],
+                        //         cmt->Einp[k], cmt->Ninp[k], cmt->Uinp[k],
+                        //         cmt->EN[indx * cmt->nsites + k], cmt->NN[indx * cmt->nsites + k], cmt->UN[indx * cmt->nsites + k]);
+                        // }
                     }
                 }
                 // print results
@@ -327,6 +327,24 @@ int eewUtils_driveCMT(struct GFAST_cmt_props_struct cmt_props,
     cmt->opt_dep = cmt->srcDepths[idep];
     cmt->opt_lat = cmt->srcLats[ilat] + SA_lat;
     cmt->opt_lon = cmt->srcLons[ilon] + SA_lon;
+
+    if (cmt_props.verbose > 2) {
+        // Get location in arrays
+        indx = ilon * cmt->ndeps * cmt->nlats
+             + ilat * cmt->ndeps 
+             + idep;
+        for (k = 0; k < cmt->nsites; k++) {
+            if (luse[k])
+            {
+                LOG_DEBUGMSG("    sta obs (%3d) for %.4f, %.4f, %.1f: %s ENUobs:[%.4f,%.4f,%.4f] ENUpred:[%.4f,%.4f,%.4f]",
+                    indx, cmt->srcLats[ilat] + SA_lat, cmt->srcLons[ilon]+ SA_lon, cmt->srcDepths[idep],
+                    cmt_data.stnm[k],
+                    cmt->Einp[k], cmt->Ninp[k], cmt->Uinp[k],
+                    cmt->EN[indx * cmt->nsites + k], cmt->NN[indx * cmt->nsites + k], cmt->UN[indx * cmt->nsites + k]);
+            }
+        }
+    }
+
     // if (cmt->ndeps < nlld)
     // {
     //     LOG_WARNMSG("%s", "NEED to unpack opt_indx and make a cmt->opt_dep");

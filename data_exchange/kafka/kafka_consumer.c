@@ -126,13 +126,15 @@ int initialize_data_connection(
      * the auto.offset.reset strategy will be used to decide where
      * in the partition to start fetching messages.
      * By setting this to earliest the consumer will read all messages
-     * in the partition if there was no previously committed offset. */
-    if (rd_kafka_conf_set(conf, "auto.offset.reset", "earliest", errstr,
+     * in the partition if there was no previously committed offset. 
+     * By setting to latest, it should start with the latest logged offset.
+     * */
+    if (rd_kafka_conf_set(conf, "auto.offset.reset", "latest", errstr,
                           sizeof(errstr)) != RD_KAFKA_CONF_OK) {
             LOG_ERRMSG("%s\n", errstr);
             rd_kafka_conf_destroy(conf);
             return 1;
-    }
+    } 
 
     /*
      * Create consumer instance.
@@ -168,7 +170,8 @@ int initialize_data_connection(
     rd_kafka_topic_partition_list_add(subscription, props->topic,
                                               /* the partition is ignored
                                                * by subscribe() */
-                                              RD_KAFKA_PARTITION_UA);
+                                              RD_KAFKA_PARTITION_UA)->offset = RD_KAFKA_OFFSET_END;
+    rd_kafka_assign(rk, subscription);
 
     /* Subscribe to the list of topics */
     err = rd_kafka_subscribe(rk, subscription);
@@ -222,12 +225,14 @@ void close_data_connection(data_conn_ptr rk,
  */
 int get_data(data_conn_ptr rk,
              data_sub_ptr sk,
-             char* message_buffer,
-             int buffer_char_size) {
+             char *message_buffer,
+             int buffer_char_size,
+             int *n_messages,
+             int fixed_msg_bytes) {
     rd_kafka_message_t *rkm;
-    int max_bytes = buffer_char_size * sizeof(char);
     int message_size = 0;
-    int message_index = 0;
+    int fixed_msg_char = fixed_msg_bytes / sizeof(char);
+    //LOG_MSG("START: fixed_msg_char = %d, buffer_char_size = %d", fixed_msg_char, buffer_char_size);
 
     while (true) {
       /* Timeout: no message within 100ms,
@@ -236,6 +241,7 @@ int get_data(data_conn_ptr rk,
        */
       rkm = rd_kafka_consumer_poll(rk, 200);
       if (!rkm) {
+          LOG_MSG(" unpacked and copied %d messages", *n_messages);
           return 0;
       }
 
@@ -259,35 +265,44 @@ int get_data(data_conn_ptr rk,
       //       rd_kafka_topic_name(rkm->rkt), rkm->partition,
       //       rkm->offset, rd_kafka_message_leader_epoch(rkm));
 
-      /* Print the message key. */
+      /* Print the message key.
       if (rkm->key && is_printable(rkm->key, rkm->key_len)) {
           LOG_MSG(" Key: %.*s\n", (int)rkm->key_len, (const char *)rkm->key);
       } else if (rkm->key) {
           LOG_MSG(" Key: (%d bytes)\n", (int)rkm->key_len);
-      }
+      } */
 
-      /* Print the message value/payload. */
+      /* Print the message value/payload.
       if (rkm->payload && is_printable(rkm->payload, rkm->len)) {
           LOG_MSG(" Value: %.*s\n", (int)rkm->len, (const char *)rkm->payload);
       } else if (rkm->payload) {
           LOG_MSG(" Value: (%d bytes)\n", (int)rkm->len);
-      }
+      } */
 
-      // JADEBUG //
+      //LOG_MSG(" message char size %d", (int)rkm->len);
       /* Put payload into buffer for parsing */
-      if (message_size + (int)rkm->len > max_bytes) {
+      if ((int)rkm->len > fixed_msg_char) { // check char lengths
+          LOG_WARNMSG(" Skipping message %d in queue, message too long (%d)",
+              *n_messages, (int)rkm->len);
+          rd_kafka_message_destroy(rkm);
+          continue;
+      }
+      //LOG_MSG(" current message char size %d", *n_messages * fixed_msg_char);
+      if (*n_messages * fixed_msg_char > buffer_char_size - (int)rkm->len) { // check char lengths
           LOG_ERRMSG(" Unread messages in queue, buffer size exceeded (%d overflow)",
               (int)rkm->len);
+          rd_kafka_message_destroy(rkm);
           break;
       }
-      memcpy(&message_buffer[message_index], (const char *)rkm->payload, rkm->len);
-      message_size += (int)rkm->len;
-      message_index += (int)rkm->len / sizeof(char);
-      // JADEBUG //
+      memcpy(&message_buffer[*n_messages * fixed_msg_char], (const char *)rkm->payload, rkm->len * sizeof(char));
+      //LOG_MSG("%s\n", message_buffer);
+      //LOG_MSG("%.1024s\n", &message_buffer[*n_messages * fixed_msg_char]);
+      *n_messages += 1;
 
       rd_kafka_message_destroy(rkm);
     }
 
+    LOG_MSG(" unpacked and copied %d messages", *n_messages);
     return 0;
 }
 

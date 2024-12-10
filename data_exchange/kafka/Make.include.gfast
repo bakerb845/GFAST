@@ -1,0 +1,98 @@
+# Makefile variables specific to GFAST
+
+# Make.include.Linux should define things like CFLAGS, CCFLAGS, BITS
+include $(EEWDIR)/Make.include.$(shell uname)
+
+# Next set of vars are for GFAST
+GFAST_USE_EW=-DGFAST_USE_EW
+GFAST_USE_AMQ=-DGFAST_USE_AMQ
+GFAST_USE_DMLIB=-DGFAST_USE_DMLIB
+GFAST_USE_KAFKA=-DGFAST_USE_KAFKA
+
+ifdef GFAST_USE_EW
+CFLAGS+=$(GFAST_USE_EW)
+endif
+ifdef GFAST_USE_AMQ
+CFLAGS+=$(GFAST_USE_AMQ)
+endif
+ifdef GFAST_USE_KAFKA
+CFLAGS+=$(GFAST_USE_KAFKA)
+endif
+ifdef GFAST_USE_DMLIB
+CFLAGS+=$(GFAST_USE_DMLIB)
+endif
+ifdef ENABLE_PLOG
+CFLAGS+=$(ENABLE_PLOG)
+endif
+
+ifeq ($(COMPEARTH),)
+  COMPEARTH=/usr/local/mtbeach
+endif
+ifeq ($(COMPEARTH_INCL),)
+  COMPEARTH_INCL=-I$(COMPEARTH)/include
+endif
+ifeq ($(COMPEARTH_LIB),)
+  COMPEARTH_LIB=$(COMPEARTH)/lib/libcompearth_static.a
+endif
+
+ifeq ($(ISCL),)
+  ISCL=/usr/local/iscl
+endif
+ifeq ($(ISCL_INCL),)
+  ISCL_INCL=-I$(ISCL)/include
+endif
+ifeq ($(ISCL_LIB),)
+  ISCL_LIB=$(ISCL)/lib/libiscl_static.a
+endif
+
+INIPARSER_LOCAL=/usr/local/iniparser-4.1
+INIPARSER_SYS=/usr
+ifeq ($(INIPARSER),)
+  INIPARSER=$(INIPARSER_SYS)
+endif
+ifeq ($(INIPARSER_INCL),)
+  INIPARSER_INCL=-I$(dir $(firstword $(wildcard $(INIPARSER)/include/iniparser/iniparser.h $(INIPARSER_LOCAL)/include/iniparser.h)))
+endif
+ifeq ($(INIPARSER_LIB),)
+  INIPARSER_LIB=$(firstword $(wildcard $(INIPARSER)/lib64/libiniparser.so $(INIPARSER_LOCAL)/lib/libiniparser.a))
+endif
+
+ifeq ($(LAPACKE),)
+  LAPACKE=/usr
+endif
+ifeq ($(LAPACKE_INCL),)
+  LAPACKE_INCL=-I$(LAPACKE)/include/lapacke
+endif
+ifeq ($(LAPACKE_LIB),)
+  LAPACKE_LIB=$(LAPACKE)/lib$(BITS)/liblapacke.so.3
+endif
+
+ifeq ($(XML2),)
+  XML2=/usr
+endif
+ifeq ($(XML2_INCL),)
+  XML2_INCL=-I$(XML2)/include/libxml2
+endif
+ifeq ($(XML2_LIB),)
+  XML2_LIB=-L$(XML2)/lib$(BITS) -lxml2
+endif
+
+ifeq ($(CBLAS),)
+  CBLAS=/usr
+endif
+ifeq ($(CBLAS_INCL),)
+  CBLAS_INCL=-I$(CBLAS)/include/openblas
+endif
+ifeq ($(CBLAS_LIB),)
+  CBLAS_LIB=-L$(CBLAS)/lib$(BITS)/atlas -ltatlas
+endif
+
+ifeq ($(HDF5),)
+  HDF5=/usr
+endif
+ifeq ($(HDF5_INCL),)
+  HDF5_INCL=-I$(HDF5)/include
+endif
+ifeq ($(HDF5_LIB),)
+  HDF5_LIB=-lhdf5
+endif

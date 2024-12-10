@@ -24,8 +24,10 @@ int initialize_data_connection(data_conn_ptr *rk_call,
 /* Get data from the data connection */
 int get_data(data_conn_ptr rk,
              data_sub_ptr sk,
-             char* message_buffer,
-             int buffer_char_size);
+             char *message_buffer,
+             int buffer_char_size,
+             int *n_messages,
+             int fixed_msg_size);
 
 /* Close the data connection */
 void close_data_connection(data_conn_ptr rk,

@@ -1,0 +1,123 @@
+################################################################################
+#                             Overall G-FAST properties                        #
+################################################################################
+[general]
+# File with station names
+metaDataFile=/home/gfast/test_data/enukaikoura_test/enukaikoura_disp.chan.txt
+SA_events_dir=./events
+SA_output_dir=./out
+#output_interval_mins=1,2,3,4,5,10
+output_interval_mins=0
+#siteMaskFile=ridgecrest-mask.txt
+# File with station names and sampling periods
+#dtfile=GFAST_streams_dt.txt
+# ElarmS message file
+eewsfile=ElarmS_messages.txt
+# File of all the site locations. The format used is currently from 
+# the SOPAC SECTOR web service.
+#siteposfile=site_pos.csv 
+# Buffer length (s)
+bufflen=620.
+processing_time=602.
+# GFAST operation mode
+#  1 -> GFAST is running in `real time' and being data through Earthworm 
+#  2 -> GFAST is running historical playbacks through Earthworm
+#  3 -> GFAST is running offline and is obtaining data purely from files
+opmode = 3
+# If working in specific area where the fault may straddle a UTM zone large
+# distortions can arise.  In this case it may be beneficial to set the UTM
+# zone.  Otherwise, if utm_zone is set to -12345 or not specified the UTM
+# zone will be estimated from the event hpyocenter provided in the ElarmS
+# message 
+# MTH: Be careful with this - Don't use in real-time mode when handling global events!
+#utm_zone = 19 
+# Mechanism for initializing sampling period
+#  1 -> Sets GPS sampling period to default (dt_default)
+#  2 -> Obtains the sampling period from the dtfile 
+#  3 -> Obtains the sampling period from Earthworm
+dt_init = 2
+# Default GPS sampling period (s)
+dt_default = 1.0
+# Location initialization strategy
+#  1 -> Initialize locations from SOPAC SECTOR web service (siteposfile)
+#  2 -> Initialize from trace buffer (if running in real-time this will
+#       happen automatically)
+loc_init = 1
+# Controls verbosity:
+# 0 -> Try to output nothing
+# 1 -> Output errors only
+# 2 -> Output errors and generic information (default)
+# 3 -> Output errors, generic information, and debug information
+verbose=3
+
+################################################################################
+#                                  PGD Properties                              #
+################################################################################
+[PGD]
+# PGD source-receiver distance tolerance in km (cannot be negative)
+dist_tolerance = 6.0
+# If PGD source-receiver distance tolerance falls below dist_tol this is the
+# default value given in km (must be positive)
+dist_default = 0.01
+#ngridSearch_deps = 10
+ndepths_in_pgd_gridSearch = 10
+# These are the defaults:
+window_vel = 3.0
+min_sites = 4
+################################################################################
+#                            CMT/Finite Fault Properties                       #
+################################################################################
+[CMT]
+ndepths_in_cmt_gridSearch = 10
+# These are the defaults:
+window_vel = 2.0
+min_sites = 4
+[FF]
+# These are the defaults:
+window_vel = 3.0
+min_sites = 4
+
+################################################################################
+#                               ActiveMQ Properties                            #
+################################################################################
+[general]
+verbose=4
+
+[ActiveMQ]
+# ActiveMQ hostname to access ElarmS messages
+#host=siren
+host=localhost
+# ActiveMQ port to access ElarmS messages (61620)
+#port=61620
+#port=5672
+#  MTH: I see it it connecting via tcp://localhost:port - seems like this has to be channel = openwire tcp: 61616
+port=61616
+# ActiveMQ topic to access ElarmS messages (eew.alg.elarms.data)
+originTopic=eew.alg.elarms.data
+#AMQtopic=eew.alg.elarms.data
+#MTH: no idea what this should be:
+destinationTopic=eew.alg.elarms.data
+# ActiveMQ username to access ElarmS messages
+user=elarms
+# ActiveMQ password to access ElarmS messages
+password=pnsnIsOK
+
+################################################################################
+#                              RabbitMQ Properties                             #
+################################################################################
+[RabbitMQ]
+RMQhost=/CWU-ppp
+RMQport=5672
+RMQtopic=www.panga.org
+RMQuser=uw
+RMQpassword=MynManAp
+RMQexchange=nev-cov
+
+################################################################################
+#                              DataConn Properties                             #
+################################################################################
+[DataConn]
+servers=kafka_rcet:9092
+groupid=foo
+topic=test_topic
+

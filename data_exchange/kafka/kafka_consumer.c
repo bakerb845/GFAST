@@ -115,7 +115,13 @@ int initialize_data_connection(
      * group, and the subscribed topic' partitions will be assigned
      * according to the partition.assignment.strategy
      * (consumer config property) to the consumers in the group. */
-    if (rd_kafka_conf_set(conf, "group.id", props->groupid, errstr,
+    srand(time(NULL));
+    int r = rand();
+    char str[12];
+    sprintf(str, "%d", r);
+    //LOG_MSG("JADEBUG: setting group.id to %s", str);
+    if (rd_kafka_conf_set(conf, "group.id", str, errstr,
+    //if (rd_kafka_conf_set(conf, "group.id", props->groupid, errstr,
                           sizeof(errstr)) != RD_KAFKA_CONF_OK) {
             LOG_ERRMSG("%s\n", errstr);
             rd_kafka_conf_destroy(conf);
@@ -167,11 +173,10 @@ int initialize_data_connection(
 
     /* Convert the list of topics to a format suitable for librdkafka */
     subscription = rd_kafka_topic_partition_list_new(1);
-    rd_kafka_topic_partition_list_add(subscription, props->topic,
-                                              /* the partition is ignored
-                                               * by subscribe() */
-                                              RD_KAFKA_PARTITION_UA)->offset = RD_KAFKA_OFFSET_END;
-    rd_kafka_assign(rk, subscription);
+    rd_kafka_topic_partition_t * rktp = rd_kafka_topic_partition_list_add(subscription, 
+        props->topic,
+        /* the partition is ignored by subscribe() */
+        RD_KAFKA_PARTITION_UA);
 
     /* Subscribe to the list of topics */
     err = rd_kafka_subscribe(rk, subscription);
@@ -361,6 +366,7 @@ int data_connection_readIni(const char *propfilename,
     strcpy(data_conn_props->topic, s);
   }
 
+  /*
   setVarName(group, "groupid\0", var);
   s = iniparser_getstring(ini, var, NULL);
   if (s == NULL) {
@@ -369,6 +375,7 @@ int data_connection_readIni(const char *propfilename,
   } else {
       strcpy(data_conn_props->groupid, s);
   }
+  */
 
   ierr = 0;
 ERROR:;

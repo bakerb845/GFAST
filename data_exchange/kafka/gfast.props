@@ -118,6 +118,5 @@ RMQexchange=nev-cov
 ################################################################################
 [DataConn]
 servers=kafka_rcet:9092
-groupid=foo
 topic=test_topic
 

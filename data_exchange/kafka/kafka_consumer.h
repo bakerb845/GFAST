@@ -6,7 +6,7 @@ typedef rd_kafka_t* data_conn_ptr; /*!< Pointer to the data connection */
 typedef void* data_sub_ptr;        /*!< Pointer to the data subscription */
 
 struct dataconn_props_struct {
-    char groupid[128];      /*!< */
+    //char groupid[128];      /*!< This would be if we want multiple consumers same group */
     char servers[128];      /*!< Bootstrap servers and ports, e.g. host1:9092,host2:9092 */
     char topic[128];        /*!< Topic, but shd this be topics if we do data and event? List of topics to subscribe to */
 };

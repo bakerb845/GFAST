@@ -140,7 +140,7 @@ int initialize_data_connection(
             LOG_ERRMSG("%s\n", errstr);
             rd_kafka_conf_destroy(conf);
             return 1;
-    } 
+    }
 
     /*
      * Create consumer instance.
@@ -376,9 +376,6 @@ int data_connection_readIni(const char *propfilename,
       strcpy(data_conn_props->groupid, s);
   }
   */
-
-  ierr = 0;
-ERROR:;
   iniparser_freedict(ini);
   return ierr;
 }

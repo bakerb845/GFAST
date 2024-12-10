@@ -1,18 +1,18 @@
-# Makefile for GFAST/src/data_exchange/kafka
+# Makefile for GFAST/src/data_exchange
 #
-GFASTROOT=../..
+GFASTROOT=..
 ifndef MAKEHOST
 MAKEHOST=$(shell uname)
 endif
 include $(GFASTROOT)/Make.include.$(MAKEHOST)
 
-OBJS	= kafka_consumer.o
-LIB	= gfast_kafka.a
+OBJS	= initializeDataConnection.o
+LIB	= gfast_dataconn.a
 
 DEBUG	= -g
 #CCFLAGS	+= -std=c++0x -O0 -D_REENTRANT -Dstatic_config
 
-INCL= -I ../../../include $(INIPARSER_INCL) $(ISCL_INCL)
+INCL= -I ../../include $(INIPARSER_INCL) $(ISCL_INCL)
 
 all: $(LIB)
 lib: $(LIB)

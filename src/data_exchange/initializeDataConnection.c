@@ -1,20 +1,19 @@
 #include "gfast_core.h"
 
 void dataexchange_initializeDataConnection() {
-#ifdef ENABLE_EARTHWORM
+#ifdef GFAST_USE_EW
     LOG_MSG("%s", "Initializing Earthworm");
-#elif ENABLE_GEOJSON
+#endif
 
-    #ifdef ENABLE_NATS
-        LOG_MSG("%s", "Initializing NATS");
-    #elif ENABLE_KAFKA
-        LOG_MSG("%s", "Initializing Kafka");
+#ifdef GFAST_ENABLE_GEOJSON
+    #ifdef GFAST_USE_NATS
+    LOG_MSG("%s", "Initializing NATS");
+    data_exchange_nats_connect();
+    #elif GFAST_USE_KAFKA
+    LOG_MSG("%s", "Initializing Kafka");
     #else 
-        LOG_ERRMSG("%s", "No data connections specified!");
-    #endif
-
-#else
     LOG_ERRMSG("%s", "No data connections specified!");
+    #endif
 #endif
 
 }

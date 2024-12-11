@@ -1,9 +1,9 @@
-#include <string.h>
-// Kafka header file
-#include <librdkafka/rdkafka.h>
+// #include <string.h>
+// // Kafka header file
+// #include <librdkafka/rdkafka.h>
 
-typedef rd_kafka_t* data_conn_ptr; /*!< Pointer to the data connection */
-typedef void* data_sub_ptr;        /*!< Pointer to the data subscription */
+// typedef rd_kafka_t* data_conn_ptr; /*!< Pointer to the data connection */
+// typedef void* data_sub_ptr;        /*!< Pointer to the data subscription */
 
 struct dataconn_props_struct {
     //char groupid[128];      /*!< This would be if we want multiple consumers same group */
@@ -11,15 +11,15 @@ struct dataconn_props_struct {
     char topic[128];        /*!< Topic, but shd this be topics if we do data and event? List of topics to subscribe to */
 };
 
-/* Read parmaeters from the ini file */
-int data_connection_readIni(const char *propfilename,
-                            const char *group,
-                            struct dataconn_props_struct *data_conn_props);
+// /* Read parmaeters from the ini file */
+// int data_connection_readIni(const char *propfilename,
+//                             const char *group,
+//                             struct dataconn_props_struct *data_conn_props);
 
-/* Initialize the data connection */
-int initialize_data_connection(data_conn_ptr *rk_call,
-                               data_sub_ptr *sk_call,
-                               const struct dataconn_props_struct* props);
+// /* Initialize the data connection */
+// int initialize_data_connection(data_conn_ptr *rk_call,
+//                                data_sub_ptr *sk_call,
+//                                const struct dataconn_props_struct* props);
 
 /* Get data from the data connection */
 int get_data(data_conn_ptr rk,
@@ -29,6 +29,6 @@ int get_data(data_conn_ptr rk,
              int *n_messages,
              int fixed_msg_size);
 
-/* Close the data connection */
-void close_data_connection(data_conn_ptr rk,
-                           data_sub_ptr sk);
+// /* Close the data connection */
+// void close_data_connection(data_conn_ptr rk,
+//                            data_sub_ptr sk);

@@ -133,6 +133,17 @@ ifeq ($(ACTIVEMQ_LIB),)
   ACTIVEMQ_LIB=-L$(ACTIVEMQ)/lib$(BITS) -lactivemq-cpp
 endif
 
+ifeq ($(NATS),)
+  NATS=/usr/local
+endif
+ifeq ($(NATS_INCL),)
+  NATS_INCL=-I$(NATS)/include
+endif
+ifeq ($(NATS_LIB),)
+  NATS_LIB=-L$(NATSDIR)/lib64 -Wl,-rpath $(NATSDIR)/lib64 -lnats
+endif
+
+
 ifeq ($(GMT),)
   GMT=/usr
 endif
@@ -186,6 +197,15 @@ CFLAGS+=$(GFAST_USE_AMQ)
 #endif
 #ifdef GFAST_USE_DMLIB
 CFLAGS+=$(GFAST_USE_DMLIB)
+#endif
+#ifdef GFAST_ENABLE_GEOJSON
+CFLAGS+=$(GFAST_ENABLE_GEOJSON)
+#endif
+#ifdef GFAST_USE_NATS
+CFLAGS+=$(GFAST_USE_NATS)
+#endif
+#ifdef GFAST_USE_KAFKA
+CFLAGS+=$(GFAST_USE_KAFKA)
 #endif
 
 AQMS_INCL+=-isystem$(AQMS)/libtnchnl/include \

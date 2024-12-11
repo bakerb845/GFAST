@@ -1,11 +1,33 @@
+#ifndef GFAST_DATAEXCHANGE_H__
+#define GFAST_DATAEXCHANGE_H__ 1
 
+#ifdef GFAST_USE_KAFKA
+typedef rd_kafka_t* data_conn_ptr; /*!< Pointer to the data connection */
+// typedef void* data_sub_ptr;        /*!< Pointer to the data subscription */
+#endif
+#ifdef GFAST_USE_NATS
+#include <nats/nats.h>
+typedef natsConnection * data_conn_ptr; /*!< Pointer to the data connection */
+#endif
+
+typedef void * data_sub_ptr;        /*!< Pointer to the data subscription */
+
+struct dataconn_props_struct {
+    char groupid[128];      /*!< */
+    char servers[128];      /*!< Bootstrap servers and ports, e.g. host1:9092,host2:9092 */
+    char topic[128];        /*!< Topic, but shd this be topics if we do data and event? List of topics to subscribe to */
+};
 
 void dataexchange_initializeDataConnection();
 
 // Earthworm
 
 // NATS
-int data_exchange_nats_connect();
+int data_exchange_nats_connect(
+    struct dataconn_props_struct *props,
+    data_conn_ptr connection,
+    data_sub_ptr subscription);
 
 // Kafka
 
+#endif /* GFAST_DATAEXCHANGE_H__ */

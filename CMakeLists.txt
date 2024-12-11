@@ -41,6 +41,13 @@ if (GFAST_USE_EW)
   MESSAGE("Will use Earthworm")
   find_package(EW REQUIRED)
 endif (GFAST_USE_EW)
+
+if (GFAST_USE_KAFKA)
+  MESSAGE("Will use Kafka")
+  find_package(JANSSON REQUIRED)
+  find_package(KAFKA REQUIRED)
+endif (GFAST_USE_KAFKA)
+
 if (UW_AMAZON)
   MESSAGE("Will use Jansson and libpng for UW/Amazon output")
   find_package(JANSSON REQUIRED)
@@ -167,6 +174,12 @@ IF (GFAST_USE_EW)
 ELSE()
    SET(GFAST_USE_EW OFF)
 ENDIF (GFAST_USE_EW)
+# Have GFAST use Kafka
+IF (GFAST_USE_KAFKA)
+  INCLUDE_DIRECTORIES(${KAFKA_INCLUDE_DIR})
+   SET(SRCS_KAFKA src/data_exchange/kafka/kafka_consumer.c
+       src/traceBuffer/ewrr/unpackGeojsonMessages.c)
+ENDIF (GFAST_USE_KAFKA)
 # Have GFAST propagate results to pnsn.org
 IF (UW_AMAZON)
    #ADD_SUBDIRECTORY(src/uw)
@@ -177,8 +190,8 @@ ENDIF (UW_AMAZON)
 # Add earthworm build flags - the earthworm `way' is to modify the system's OS flags
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EW_BUILD_FLAGS}" CACHE STRING "" FORCE)
 
-ADD_LIBRARY(gfast_shared SHARED ${SRCS_CORE} ${SRCS_XML} ${SRCS_AMQ} ${SRCS_EEW} ${SRCS_HDF5} ${SRCS_H5TB})
-ADD_LIBRARY(gfast_static STATIC ${SRCS_CORE} ${SRCS_XML} ${SRCS_AMQ} ${SRCS_EEW} ${SRCS_HDF5} ${SRCS_H5TB})
+ADD_LIBRARY(gfast_shared SHARED ${SRCS_CORE} ${SRCS_XML} ${SRCS_KAFKA} ${SRCS_AMQ} ${SRCS_EEW} ${SRCS_HDF5} ${SRCS_H5TB})
+ADD_LIBRARY(gfast_static STATIC ${SRCS_CORE} ${SRCS_XML} ${SRCS_KAFKA} ${SRCS_AMQ} ${SRCS_EEW} ${SRCS_HDF5} ${SRCS_H5TB})
 
 #ADD_EXECUTABLE(gfast_playback src/gfast_playback.c ${SRCS_EEW})
 IF (GFAST_USE_EW)
@@ -233,6 +246,10 @@ IF (GFAST_USE_AMQ)
 ENDIF()
 # Add some extra libraries - there must be a better way to do this
 SET(LIB_BASE ${LIB_BASE} -lm -ldl -lpthread)
+# Add kafka library
+IF (GFAST_USE_KAFKA)
+   SET(LIB_BASE ${LIB_BASE} ${KAFKA_LIBRARY} ${JANSSON_LIBRARY})
+ENDIF(GFAST_USE_KAFKA)
 # Set the libraries to target link executables with
 IF (GFAST_USE_EW)
    SET(LIB_ALL ${EW_LIBRARY} ${LIB_BASE})

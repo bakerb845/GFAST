@@ -12,6 +12,7 @@
 #define PATH_MAX 4096
 #endif
 #include "gfast_config.h"
+#include "kafka_consumer.h"
 
 
 struct GFAST_pgd_props_struct
@@ -173,6 +174,7 @@ struct GFAST_props_struct
   struct GFAST_ff_props_struct ff_props;    /*!< FF properties structure. */
   struct GFAST_activeMQ_struct activeMQ_props; /*!< ShakeAlert ActiveMQ properties */
   struct GFAST_ew_struct ew_props;          /*!< Earthworm properties. */
+  struct dataconn_props_struct data_conn_props; /*!< Data connection properties */
   char metaDataFile[PATH_MAX]; /*!< Contains the GPS metadata file 
 				 which defines the sites, locations,
 				 sampling periods, etc. to be used

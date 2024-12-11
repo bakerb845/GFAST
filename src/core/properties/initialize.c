@@ -446,6 +446,15 @@ int core_properties_initialize(const char *propfilename,
         }
     } // End check on need for ActiveMQ
 #endif
+  //---------------------------Data Connection Parameters--------------------------//
+  ierr = data_connection_readIni(propfilename,
+           "DataConn\0",
+            &props->data_conn_props);
+  if (ierr != 0) {
+    LOG_ERRMSG("%s", "Error reading Data Connection group parameters");
+    goto ERROR; 
+  }
+  //
   // Success!
   ierr = 0;
   return ierr;

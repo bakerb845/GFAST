@@ -6,6 +6,9 @@ USE_INTEL=false
 # USE_AMQ=true
 USE_AMQ=false
 
+# USE_KAFKA=true
+USE_KAFKA=false
+
 # Build in build/ dir to preserve standalone make system
 if [ ! -d build ]; then
    mkdir build
@@ -69,6 +72,15 @@ else
   ACTIVEMQ="-DGFAST_USE_AMQ=FALSE"
 fi
 
+if $USE_KAFKA; then
+  KAFKA="-DGFAST_USE_KAFKA=TRUE \
+         -DKAFKA_INCLUDE_DIR=/usr/include/librdkafka \
+         -DKAFKA_LIBRARY=$LIB_ROOT/librdkafka.so 
+        "
+else
+  KAFKA="-DGFAST_USE_KAFKA=FALSE"
+fi
+
 cmake ../ $LINEAR -DCMAKE_BUILD_TYPE=DEBUG \
   -DCMAKE_INSTALL_PREFIX=./ \
   -DCMAKE_C_FLAGS="-g3 -O2 -Wno-reserved-id-macro -Wno-padded -Wno-unknown-pragmas -fopenmp" \
@@ -76,6 +88,7 @@ cmake ../ $LINEAR -DCMAKE_BUILD_TYPE=DEBUG \
   -DGFAST_INSTANCE="PNSN" \
   -DBUILDER="Builder" \
   $ACTIVEMQ \
+  $KAFKA \
   -DGFAST_USE_EW=TRUE \
   -DUW_AMAZON=FALSE \
   -DH5_C_INCLUDE_DIR=/usr/include \

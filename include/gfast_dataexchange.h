@@ -9,24 +9,32 @@ typedef rd_kafka_t* data_conn_ptr; /*!< Pointer to the data connection */
 #include <nats/nats.h>
 typedef natsConnection * data_conn_ptr; /*!< Pointer to the data connection */
 #endif
+#include "gfast_struct.h"
 
 typedef void * data_sub_ptr;        /*!< Pointer to the data subscription */
 
-struct dataconn_props_struct {
-    char groupid[128];      /*!< */
-    char servers[128];      /*!< Bootstrap servers and ports, e.g. host1:9092,host2:9092 */
-    char topic[128];        /*!< Topic, but shd this be topics if we do data and event? List of topics to subscribe to */
-};
+// struct dataconn_props_struct {
+//     char groupid[128];      /*!< */
+//     char servers[128];      /*!< Bootstrap servers and ports, e.g. host1:9092,host2:9092 */
+//     char topic[128];        /*!< Topic, but shd this be topics if we do data and event? List of topics to subscribe to */
+// };
 
-void dataexchange_initializeDataConnection();
+void dataexchange_initializeDataConnection(
+    struct dataconn_props_struct *props,
+    void **connection,
+    void **subscription);
+
+int dataexchange_readIni(const char *propfilename,
+                     const char *group,
+                     struct dataconn_props_struct* data_conn_props);
 
 // Earthworm
 
 // NATS
-int data_exchange_nats_connect(
+int dataexchange_nats_connect(
     struct dataconn_props_struct *props,
-    data_conn_ptr connection,
-    data_sub_ptr subscription);
+    void **connection,
+    void **subscription);
 
 // Kafka
 

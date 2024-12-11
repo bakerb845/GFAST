@@ -140,9 +140,8 @@ ifeq ($(NATS_INCL),)
   NATS_INCL=-I$(NATS)/include
 endif
 ifeq ($(NATS_LIB),)
-  NATS_LIB=-L$(NATSDIR)/lib64 -Wl,-rpath $(NATSDIR)/lib64 -lnats
+  NATS_LIB=-L$(NATS)/lib64 -Wl,-rpath $(NATS)/lib64 -lnats
 endif
-
 
 ifeq ($(GMT),)
   GMT=/usr

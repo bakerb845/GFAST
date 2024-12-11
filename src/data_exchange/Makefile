@@ -6,19 +6,23 @@ MAKEHOST=$(shell uname)
 endif
 include $(GFASTROOT)/Make.include.$(MAKEHOST)
 
-OBJS	= initializeDataConnection.o
-LIB	= gfast_dataconn.a
-
 DEBUG	= -g
-#CCFLAGS	+= -std=c++0x -O0 -D_REENTRANT -Dstatic_config
 
-INCL= -I ../../include $(INIPARSER_INCL) $(ISCL_INCL)
+INCL            = -I ../../include $(INIPARSER_INCL) $(ISCL_INCL)
+
+SYSLIBS		= -lpthread -lnsl -lrt -lz
+
+SDIRS	= nats 
+LIB	= gfast_dataexchange.a
+OBJS = dataExchange.o
+SUBOBJS = $(foreach dir,$(SDIRS),$(dir)/*.o) 
 
 all: $(LIB)
 lib: $(LIB)
 
-$(LIB): $(OBJS)
-	$(AR) $(LIB) $(OBJS)
+$(LIB): $(SDIRS) $(OBJS)
+	for dir in $(SDIRS) ; do make -C $$dir all; done
+	$(AR) $(LIB) $(OBJS) $(SUBOBJS)
 
 %.o:    %.c
 	$(cc) -c $< -o $@ $(CFLAGS) $(DEBUG) $(INCL)
@@ -42,8 +46,14 @@ cleandepend:
 
 clean:
 	-rm -f *.o $(LIB)
+	for dir in $(SDIRS) ; do \
+		make -C $$dir clean ; \
+	done
 
 veryclean: clean rm-ids cleandepend
 
 install: $(BIN) | $(INSTALL_ELARMS_BIN_DIR)
 	cp $(BIN) $(INSTALL_ELARMS_BIN_DIR)/
+
+printvars:
+	@echo OBJS=$(OBJS)

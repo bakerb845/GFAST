@@ -167,6 +167,12 @@ struct GFAST_ew_struct
   char moduleName[256];       /*!< Earthworm module name. */ 
 };
 
+struct dataconn_props_struct {
+    char groupid[128];      /*!< */
+    char servers[128];      /*!< Bootstrap servers and ports, e.g. host1:9092,host2:9092 */
+    char topic[128];        /*!< Topic, but shd this be topics if we do data and event? List of topics to subscribe to */
+};
+
 struct GFAST_props_struct
 {
   struct GFAST_pgd_props_struct pgd_props;  /*!< PGD properties structure. */

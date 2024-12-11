@@ -5,14 +5,15 @@
 /*!
  * @brief Initializes NATS consumer.
  * @param[in] props         Data connection properties.
- * @param[in] subscription  Data subscription pointer (void *)
- * @param[out] rk        Kafka consumer handle
+ * 
+ * @param[out] connection    Data connection pointer (void *)
+ * @param[out] subscription  Data subscription pointer (void *)
  * @result 0 indicates success.
  */
-int data_exchange_nats_connect(
+int dataexchange_nats_connect(
     struct dataconn_props_struct *props,
-    data_conn_ptr connection,
-    data_sub_ptr subscription) 
+    void **connection,
+    void **subscription) 
 {
     char *nats_subject = props->topic;
     LOG_MSG("Listening on NATS subject %s\n", nats_subject);
@@ -33,6 +34,7 @@ int data_exchange_nats_connect(
     }
 
     // assign connection to data_conn_ptr
-    subscription = sub;
+    *connection = conn;
+    *subscription = sub;
     return 1;
 }

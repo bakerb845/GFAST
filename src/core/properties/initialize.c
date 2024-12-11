@@ -18,6 +18,7 @@
 #ifdef GFAST_USE_AMQ
 #include "gfast_activeMQ.h"
 #endif
+#include "gfast_dataexchange.h"
 
 int set_array_from_string_int(const char *prop, int *array, int max_size);
 int set_array_from_string_str(const char *prop, char **array, int max_size);
@@ -447,7 +448,7 @@ int core_properties_initialize(const char *propfilename,
     } // End check on need for ActiveMQ
 #endif
   //---------------------------Data Connection Parameters--------------------------//
-  ierr = data_connection_readIni(propfilename,
+  ierr = dataexchange_readIni(propfilename,
            "DataConn\0",
             &props->data_conn_props);
   if (ierr != 0) {

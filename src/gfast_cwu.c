@@ -101,7 +101,7 @@ int main(int argc, char **argv)
     // const bool luseListener = false;         /**< C can't trigger so turn this off (remove?) */
     double tstatus, tstatus0, tstatus1;
     // static void *amqMessageListener = NULL;  /**< pointer to ShakeAlertConsumer object */
-    int ierr, im, msWait, nTracebufs2Read;
+    int ierr, im, msWait, nDataRead;
     bool lacquire, lnewEvent, in_loop;
     const int rdwt = 2; // H5 file is read only (1) or read/write (2)
 #ifndef ENABLE_PLOG
@@ -364,6 +364,10 @@ int main(int argc, char **argv)
         LOG_ERRMSG("%s: Error flusing the ring\n", fcnm);
         goto ERROR;
     }
+
+    // Connect to data exchanger
+    dataexchange_initializeDataConnection(&(props.data_conn_props), &connection, &subscription);
+
     // Begin the acquisition loop
     LOG_MSG("%s: Beginning the acquisition...", fcnm);
     amqMessage = NULL;
@@ -416,40 +420,46 @@ int main(int argc, char **argv)
             tstatus0 = tstatus1;
         } 
 
-        LOG_MSG("== [GFAST t :%f] Get the msgs off the EW ring", time_timeStamp());
+        LOG_MSG("== [GFAST t :%f] Get the msgs", time_timeStamp());
         double tbeger = time_timeStamp();
-        memory_free8c(&msgs);
-        msgs = traceBuffer_ewrr_getMessagesFromRing(MAX_MESSAGES,
-                                                   false,
-                                                   &ringInfo,
-                                                   tb2Data.hashmap,
-                                                   &nTracebufs2Read,
-                                                   &ierr);
-        LOG_MSG("== [GFAST t :%f] getMessages returned nTracebufs2Read:%d",
-            time_timeStamp(), nTracebufs2Read);
+        // memory_free8c(&msgs);
+        // msgs = traceBuffer_ewrr_getMessagesFromRing(MAX_MESSAGES,
+        //                                            false,
+        //                                            &ringInfo,
+        //                                            tb2Data.hashmap,
+        //                                            &nDataRead,
+        //                                            &ierr);
+        // LOG_MSG("== [GFAST t :%f] getMessages returned nDataRead:%d",
+        //     time_timeStamp(), nDataRead);
 
-        if (ierr < 0 || (msgs == NULL && nTracebufs2Read > 0)) {
-            if (ierr ==-1) {
-                LOG_ERRMSG("%s: Terminate message received from ring\n", fcnm);
-                ierr = 1;
-            } else if (ierr ==-2) {
-                LOG_ERRMSG("%s: Read error encountered on ring\n", fcnm);
-                ierr = 1;
-            } else if (ierr ==-3) {
-                LOG_ERRMSG("%s: Ring info structure never initialized\n", fcnm);
-                ierr = 1;
-            } else if (msgs == NULL) {
-                LOG_ERRMSG("%s: Message allocation error\n", fcnm);
-                ierr = 1;
-            }
-            goto ERROR;
-        }
-        LOG_MSG("scrounge [Timing: %.4fs]", time_timeStamp() - tbeger);
+        // if (ierr < 0 || (msgs == NULL && nDataRead > 0)) {
+        //     if (ierr ==-1) {
+        //         LOG_ERRMSG("%s: Terminate message received from ring\n", fcnm);
+        //         ierr = 1;
+        //     } else if (ierr ==-2) {
+        //         LOG_ERRMSG("%s: Read error encountered on ring\n", fcnm);
+        //         ierr = 1;
+        //     } else if (ierr ==-3) {
+        //         LOG_ERRMSG("%s: Ring info structure never initialized\n", fcnm);
+        //         ierr = 1;
+        //     } else if (msgs == NULL) {
+        //         LOG_ERRMSG("%s: Message allocation error\n", fcnm);
+        //         ierr = 1;
+        //     }
+        //     goto ERROR;
+        // }
+        // LOG_MSG("scrounge [Timing: %.4fs]", time_timeStamp() - tbeger);
+
+        const int max_payload_size = 1024;
+        const int message_block = 10000;
+        memory_free8c(&msgs);
+        msgs = dataexchange_getMessages(&subscription, max_payload_size, message_block, &nDataRead, &ierr);
+        LOG_MSG("Got %d messages [Timing: %.4fs]", nDataRead, time_timeStamp() - tbeger);
         tbeger = time_timeStamp();
         
         // Unpackage the tracebuf2 messages
         LOG_MSG("%s", "== Calling unpackTraceBuf2Messages");
-        ierr = traceBuffer_ewrr_unpackTraceBuf2Messages(nTracebufs2Read,
+        ierr = traceBuffer_ewrr_unpackTraceBuf2Messages(nDataRead,
             msgs, &tb2Data);
         memory_free8c(&msgs);
         LOG_MSG("== Ending unpackTraceBuf2Messages: [Timing: %.4fs]",
@@ -641,6 +651,7 @@ int main(int argc, char **argv)
         }
         activeMQ_stop();
     }
+    dataexchange_closeDataConnection(&connection, &subscription);
     core_cmt_finalize(&props.cmt_props,
                       &cmt_data,
                       &cmt);

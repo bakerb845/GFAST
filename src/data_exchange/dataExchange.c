@@ -33,6 +33,58 @@ void dataexchange_initializeDataConnection(
 
 }
 
+void dataexchange_closeDataConnection(
+    void **connection,
+    void **subscription) 
+{
+#ifdef GFAST_USE_EW
+    LOG_MSG("%s", "Closing Earthworm");
+#endif
+
+#ifdef GFAST_ENABLE_GEOJSON
+    #ifdef GFAST_USE_NATS
+    LOG_MSG("%s", "Closing NATS connection");
+    dataexchange_nats_close(connection, subscription);
+    #elif GFAST_USE_KAFKA
+    LOG_MSG("%s", "Closing Kafka");
+    #else 
+    LOG_ERRMSG("%s", "No data connections specified!");
+    #endif
+#endif
+
+}
+
+char *dataexchange_getMessages(
+    void **subscription,
+    const int max_payload_size,
+    const int message_block,
+    int *n_messages,
+    int *ierr) 
+{
+    char *msgs = NULL;
+#ifdef GFAST_USE_EW
+    LOG_MSG("%s", "Getting data from Earthworm");
+#endif
+
+#ifdef GFAST_ENABLE_GEOJSON
+    #ifdef GFAST_USE_NATS
+    LOG_MSG("%s", "Getting data from NATS");
+    msgs = dataexchange_nats_getMessages(
+        subscription,
+        max_payload_size,
+        message_block,
+        n_messages,
+        ierr);
+    #elif GFAST_USE_KAFKA
+    LOG_MSG("%s", "Getting data from Kafka");
+    #else 
+    LOG_ERRMSG("%s", "No data connections specified!");
+    #endif
+#endif
+
+    return msgs;
+}
+
 
 /*! 
  * @brief Reads the DataConn properties from the initialization file.
@@ -64,7 +116,7 @@ int dataexchange_readIni(const char *propfilename,
   setVarName(group, "servers\0", var);
   s = iniparser_getstring(ini, var, NULL);
   if (s == NULL) {
-    LOG_ERRMSG("%s: Could not find Kafka servers string!\n", __func__);
+    LOG_ERRMSG("%s: Could not find servers string!\n", __func__);
     goto ERROR;
   } else {
     strcpy(data_conn_props->servers, s);
@@ -73,7 +125,7 @@ int dataexchange_readIni(const char *propfilename,
   setVarName(group, "topic\0", var);
   s = iniparser_getstring(ini, var, NULL);
   if (s == NULL) {
-    LOG_ERRMSG("%s: Could not find Kafka topic string!\n", __func__);
+    LOG_ERRMSG("%s: Could not find topic string!\n", __func__);
     goto ERROR;
   } else {
     strcpy(data_conn_props->topic, s);
@@ -82,7 +134,7 @@ int dataexchange_readIni(const char *propfilename,
   setVarName(group, "groupid\0", var);
   s = iniparser_getstring(ini, var, NULL);
   if (s == NULL) {
-      LOG_ERRMSG("%s: Could not find Kafka groupid string!\n", __func__);
+      LOG_ERRMSG("%s: Could not find groupid string!\n", __func__);
       goto ERROR;
   } else {
       strcpy(data_conn_props->groupid, s);

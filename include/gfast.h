@@ -12,6 +12,7 @@
 #include "gfast_struct.h"
 #include "gfast_traceBuffer.h"
 #include "gfast_xml.h"
+#include "gfast_dataexchange.h"
 
 #ifdef __cplusplus
 extern "C"

@@ -11,7 +11,7 @@ typedef natsConnection * data_conn_ptr; /*!< Pointer to the data connection */
 #endif
 #include "gfast_struct.h"
 
-typedef void * data_sub_ptr;        /*!< Pointer to the data subscription */
+// typedef void * data_sub_ptr;        /*!< Pointer to the data subscription */
 
 // struct dataconn_props_struct {
 //     char groupid[128];      /*!< */
@@ -23,10 +23,18 @@ void dataexchange_initializeDataConnection(
     struct dataconn_props_struct *props,
     void **connection,
     void **subscription);
-
+char *dataexchange_getMessages(
+    void **subscription,
+    const int max_payload_size,
+    const int message_block,
+    int *n_messages,
+    int *ierr);
+void dataexchange_closeDataConnection(
+    void **connection,
+    void **subscription);
 int dataexchange_readIni(const char *propfilename,
-                     const char *group,
-                     struct dataconn_props_struct* data_conn_props);
+                         const char *group,
+                         struct dataconn_props_struct* data_conn_props);
 
 // Earthworm
 
@@ -35,6 +43,13 @@ int dataexchange_nats_connect(
     struct dataconn_props_struct *props,
     void **connection,
     void **subscription);
+char *dataexchange_nats_getMessages(
+    void **subscription,
+    const int max_payload_size,
+    const int message_block,
+    int *n_messages,
+    int *ierr);
+int dataexchange_nats_close(void **connection, void **subscription);
 
 // Kafka
 

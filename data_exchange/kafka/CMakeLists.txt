@@ -175,7 +175,7 @@ ENDIF (GFAST_USE_EW)
 # Have GFAST use Kafka
 IF (GFAST_USE_KAFKA)
   INCLUDE_DIRECTORIES(${KAFKA_INCLUDE_DIR})
-   SET(SRCS_KAFKA src/kafka/kafka_consumer.c)
+   SET(SRCS_KAFKA src/data_exchange/kafka/kafka_consumer.c)
 ENDIF (GFAST_USE_KAFKA)
 # Have GFAST propagate results to pnsn.org
 IF (UW_AMAZON)

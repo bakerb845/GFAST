@@ -1,4 +1,4 @@
-# Makefile for GFAST/src/kafka
+# Makefile for GFAST/src/data_exchange/kafka
 #
 GFASTROOT=../
 ifndef MAKEHOST

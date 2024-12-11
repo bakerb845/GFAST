@@ -1,11 +1,11 @@
 Dependency: librdkafka-dev
 
 Build instructions:
-mkdir src/kafka \
+mkdir src/data_exchange/kafka \
 mv ../gfast_struct.h include \
 mv ../initialize.c src/core/properties/ \
-mv ../kafka_consumer.c src/kafka \
+mv ../kafka_consumer.c src/data_exchange/kafka \
 mv ../kafka_consumer.h include/ \
-mv ../Makefile_kafka src/kafka/Makefile \
+mv ../Makefile_kafka src/data_exchange/kafka/Makefile \
 mv ../FindKAFKA.cmake CMakeModules/ \
 

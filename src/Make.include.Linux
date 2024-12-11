@@ -148,6 +148,16 @@ else
 endif
 GTEST_INCL=-I$(GTEST)/include
 
+ifeq ($(JANSSON),)
+  JANSSON=/home/ulbergc/WORK/libs/jansson-2.14/src
+endif
+ifeq ($(JANSSON_INCL),)
+  JANSSON_INCL=-I$(JANSSON)
+endif
+ifeq ($(JANSSON_LIB),)
+  JANSSON_LIB=-L$(JANSSON)/.libs -Wl,-rpath $(JANSSON)/.libs -ljansson
+endif
+
 ACTIVEMQ_CLASS_PATH=$(ACTIVEMQ_JAR_DIR)/*:$(ACTIVEMQ_JAR_DIR)/optional/*:$(ACTIVEMQ_JAR_DIR)/camel/*
 
 QMASERV_INCL=-isystem$(QMASERV)

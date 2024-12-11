@@ -215,10 +215,17 @@ void traceBuffer_ewrr_freetb2Trace(const bool clearSNCL,
 /* Sets the tb2Data structure and desired SNCL's from the input gpsData */
 int traceBuffer_ewrr_settb2DataFromGFAST(struct GFAST_data_struct *gpsData,
                                          struct tb2Data_struct *tb2Data);
+int traceBuffer_ewrr_printTB2Data(struct tb2Data_struct *tb2Data);
 /* Unpack messages */
 int traceBuffer_ewrr_unpackTraceBuf2Messages(
     const int nRead,
     const char *msgs,
+    struct tb2Data_struct *tb2Data);
+int traceBuffer_ewrr_unpackGeojsonMessages(
+    const int nRead,
+    const char *msgs,
+    const int max_payload_size,
+    struct h5traceBuffer_struct *h5traceBuffer,
     struct tb2Data_struct *tb2Data);
 /* Reads a chunk of data from a Data group */
 double *traceBuffer_h5_readData(const hid_t groupID,

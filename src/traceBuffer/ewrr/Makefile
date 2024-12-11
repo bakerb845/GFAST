@@ -8,11 +8,11 @@ include $(GFASTROOT)/Make.include.$(MAKEHOST)
 
 OBJS	= classifyRetval.o flushRing.o freetb2Trace.o initialize.o \
 unpackTraceBuf2Messages.o finalize.o freetb2Data.o getMessagesFromRing.o \
-settb2DataFromGFAST.o tb2_hash.o
+settb2DataFromGFAST.o tb2_hash.o unpackGeojsonMessages.o printTB2Data.o
 
 DEBUG	= -g
 
-INCL            = -I ../../../include $(EW_INCL) $(HDF5_INCL) $(ISCL_INCL)
+INCL            = -I ../../../include $(EW_INCL) $(HDF5_INCL) $(ISCL_INCL) $(JANSSON_INCL)
 
 SYSLIBS		= -lpthread -lnsl -lrt -lz
 

@@ -4,8 +4,8 @@
 #include <string.h>
 #include <limits.h>
 #include "transport.h"
-#include "trace_buf.h"
 #include "gfast_traceBuffer.h"
+#include "gfast_dataexchange.h"
 #include "gfast_core.h"
 #include "iscl/memory/memory.h"
 
@@ -30,7 +30,7 @@
  *
  * @param[out] ierr          0 Indicates success. <br>
  *                          -1 Indicates a terminate signal from the ring. <br>
- *                             the user should call traceBuffer_ewrr_finalize
+ *                             the user should call dataexchange_earthworm_finalize
  *                             and quit. <br>
  *                          -2 Indicates a read error on the ring. <br>
  *                          -3 Indicates the ringInfo structure was not
@@ -46,10 +46,10 @@
  * @copyright ISTI distribted under Apache 2.
  *
  */
-char *traceBuffer_ewrr_getMessagesFromRing(const int messageBlock,
+char *dataexchange_earthworm_getMessagesFromRing(const int messageBlock,
                                            const bool showWarnings,
                                            struct ewRing_struct *ringInfo,
-                                           struct tb2_hashmap_struct *hashmap,
+                                           struct generictrace_hashmap_struct *hashmap,
                                            int *nRead, int *ierr)
 {
   MSG_LOGO gotLogo; 
@@ -108,7 +108,7 @@ char *traceBuffer_ewrr_getMessagesFromRing(const int messageBlock,
       retval = tport_copyfrom(&ringInfo->region, ringInfo->getLogo, ringInfo->nlogo,
                               &gotLogo, &gotSize, msg, MAX_TRACEBUF_SIZ, &sequenceNumber);
       // Classify my message
-      retval = traceBuffer_ewrr_classifyGetRetval(retval);
+      retval = dataexchange_earthworm_classifyGetRetval(retval);
       if (retval ==-2) {
         LOG_ERRMSG("%s", "An error was encountered getting message");
         *ierr =-2;
@@ -144,8 +144,8 @@ char *traceBuffer_ewrr_getMessagesFromRing(const int messageBlock,
             nscl, traceHeader.starttime, traceHeader.nsamp);
         }
 
-        // Skip message if it isn't in the tb2_trace NSLC list
-        if (traceBuffer_ewrr_hashmap_contains(hashmap, nscl) == NULL) {
+        // Skip message if it isn't in the generictrace NSLC list
+        if (traceBuffer_generictrace_hashmap_contains(hashmap, nscl) == NULL) {
           if (debug) {
             LOG_DEBUGMSG("CCC getMsgs: skipping %s, not in hashmap", nscl);
           }

@@ -1,4 +1,4 @@
-# Makefile for GFAST/src/traceBuffer/ewrr
+# Makefile for GFAST/src/traceBuffer/generictrace
 #
 GFASTROOT=../..
 ifndef MAKEHOST
@@ -6,9 +6,15 @@ MAKEHOST=$(shell uname)
 endif
 include $(GFASTROOT)/Make.include.$(MAKEHOST)
 
-OBJS	= classifyRetval.o flushRing.o freetb2Trace.o initialize.o \
-unpackTraceBuf2Messages.o finalize.o freetb2Data.o getMessagesFromRing.o \
-settb2DataFromGFAST.o tb2_hash.o unpackGeojsonMessages.o printTB2Data.o
+OBJS	= freeGenerictrace.o freeGenerictraceData.o setGenerictraceDataFromGFAST.o \
+generictrace_hash.o printGenerictraceData.o unpackSorter.o
+
+ifdef GFAST_USE_EW
+OBJS += unpackTraceBuf2Messages.o
+endif
+ifdef GFAST_ENABLE_GEOJSON
+OBJS += unpackGeojsonMessages.o
+endif
 
 DEBUG	= -g
 

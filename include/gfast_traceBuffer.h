@@ -23,67 +23,20 @@
 #define PATH_MAX 4096
 #endif
 #include "gfast_config.h"
-#ifdef GFAST_USE_EW
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wpadded"
-#pragma clang diagnostic ignored "-Wreserved-id-macro"
-#pragma clang diagnostic ignored "-Wstrict-prototypes"
-#endif
-#include <transport.h>
-#include <earthworm.h>
-#include <trace_buf.h>
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-int WaveMsg2MakeLocal( TRACE2_HEADER* wvmsg );
-struct ewRing_struct
-{
-    char ewRingName[512];  /*!< Earthworm ring name to which we will connect */
-    SHM_INFO region;       /*!< Earthworm shared memory region corresponding to
-                                the earthworm ring */
-    MSG_LOGO *getLogo;     /*!< Logos to scrounge from the ring [nlogo] */
-    long ringKey;          /*!< Ring key number */
-    short nlogo;           /*!< Number of logos */
-    bool linit;            /*!< True if the structure is initialized.
-                                False if the structure is not initialized. */
-    unsigned msWait;       /*!< milliseconds to wait after reading ring */
-    unsigned char
-       traceBuffer2Type;   /*!< traceBuffer2type earthworm type */ 
-    unsigned char
-       heartBeatType;      /*!< earthworm heartbeat type */ 
-    unsigned char
-       errorType;          /*!< earthworm error type */
-    unsigned char  
-       instLocalID;        /*!< earthworm local installation ID type */
-    unsigned char
-       instWildcardID;     /*!< installation wildcard ID */
-    unsigned char
-       modWildcardID;      /*!< module wildcard ID */
-};
-#else
-#ifndef MAX_TRACEBUF_SIZ
-#define MAX_TRACEBUF_SIZ 4096
-#endif
-struct ewRing_struct
-{
-    bool linit;            /*!< Bogus value so that compilation proceeds */ 
-};
-#endif
 
 /* Linked list node for hash_set */
-struct tb2_node {
-    struct tb2_node *next; /* next entry in chain */
+struct generictrace_node {
+    struct generictrace_node *next; /* next entry in chain */
     char *name;            /* defined name (NSCL) */
-    int i;                 /* index into tb2Data_struct for this NSCL */
+    int i;                 /* index into generictraceData_struct for this NSCL */
 };
 
-struct tb2_hashmap_struct {
-    struct tb2_node **map; /* hash array [hashsize] */
+struct generictrace_hashmap_struct {
+    struct generictrace_node **map; /* hash array [hashsize] */
     uint32_t hashsize;     /* hashsize for hashmap array */
 };
 
-struct tb2Trace_struct
+struct generictrace_struct
 {
     char netw[64];      /*!< Network name */
     char stnm[64];      /*!< Station name */
@@ -100,13 +53,26 @@ struct tb2Trace_struct
     int npts;           /*!< Number of points in times and data */
 };
 
-struct tb2Data_struct
+struct generictraceData_struct
 {
-    struct tb2Trace_struct *traces; /*!< Concatenated traces */
+    struct generictrace_struct *traces; /*!< Concatenated traces */
     int ntraces;                    /*!< Number of traces */
-    struct tb2_hashmap_struct *hashmap; /*!< Hashmap for trace NSCLs */
+    struct generictrace_hashmap_struct *hashmap; /*!< Hashmap for trace NSCLs */
     bool linit;                     /*!< If true then the structure is 
                                          initialized. */
+};
+
+// Header information used to sort channel data before adding to generictraceData_struct
+struct string_index {
+  char nscl[15];
+  char net[8];
+  char sta[8];
+  char cha[8];
+  char loc[8];
+
+  double time;
+  int indx;
+  int nsamps;
 };
 
 struct h5trace_struct
@@ -160,73 +126,53 @@ extern "C"
 {
 #endif
 
-///// Methods for hashing tb2 channels
+///// Methods for hashing generictrace channels
 /* Hashing function */
-uint32_t traceBuffer_ewrr_hash(const char *s);
+uint32_t traceBuffer_generictrace_hash(const char *s);
 /* Calls hash() and returns index into array with given hashsize */
-uint32_t traceBuffer_ewrr_make_hash(const char *s, uint32_t hashsize);
+uint32_t traceBuffer_generictrace_make_hash(const char *s, uint32_t hashsize);
 /* Add a value to the set */
-struct tb2_node *traceBuffer_ewrr_hashmap_add(struct tb2_hashmap_struct *hashmap,
+struct generictrace_node *traceBuffer_generictrace_hashmap_add(struct generictrace_hashmap_struct *hashmap,
                                               const char *name,
                                               int index);
 /* Remove a value from the set */
-int traceBuffer_ewrr_hashmap_remove(struct tb2_hashmap_struct *hashmap, const char *name);
+int traceBuffer_generictrace_hashmap_remove(struct generictrace_hashmap_struct *hashmap, const char *name);
 /* Check if set contains a value */
-struct tb2_node *traceBuffer_ewrr_hashmap_contains(struct tb2_hashmap_struct *hashmap,
+struct generictrace_node *traceBuffer_generictrace_hashmap_contains(struct generictrace_hashmap_struct *hashmap,
                                                    const char *name);
 /* Free hashmap node */
-void traceBuffer_ewrr_free_node(struct tb2_node *np);
+void traceBuffer_generictrace_free_node(struct generictrace_node *np);
 /* Free hashmap table */
-void traceBuffer_ewrr_free_hashmap(struct tb2_hashmap_struct *hashmap);
+void traceBuffer_generictrace_free_hashmap(struct generictrace_hashmap_struct *hashmap);
 /* Print the full set structure, for debugging */
-void traceBuffer_ewrr_print_hashmap(struct tb2_hashmap_struct *hashmap);
+void traceBuffer_generictrace_print_hashmap(struct generictrace_hashmap_struct *hashmap);
 /* Use the un-modded hash value to determine whether there are any true collisions (debugging) */
-int traceBuffer_ewrr_print_true_collisions(struct tb2_hashmap_struct *hashmap);
+int traceBuffer_generictrace_print_true_collisions(struct generictrace_hashmap_struct *hashmap);
 ///// End hashing functions
 
-/* Classify the result of earthworm tport_copyfrom */
-int traceBuffer_ewrr_classifyGetRetval(const int retval);
-/* Finalize earthworm ring reader */
-int traceBuffer_ewrr_finalize(struct ewRing_struct *ringInfo);
-/* Flush an earthworm ring */
-int traceBuffer_ewrr_flushRing(struct ewRing_struct *ringInfo);
-  /* Read messages from the ring */
-char *traceBuffer_ewrr_getMessagesFromRing(const int messageBlock,
-                                           const bool showWarnings,
-                                           struct ewRing_struct *ringInfo,
-                                           struct tb2_hashmap_struct *hashmap,
-                                           int *nRead, int *ierr);
-/* Initialize the earthworm ring reader connection */
-int traceBuffer_ewrr_initialize(const char *ewRing,
-                                const int msWait,
-                                struct ewRing_struct *ringInfo);
-
-/* Classify return value from Earthworm get transport call */
-int traceBuffer_ewrr_classifyGetRetval(const int retval);
-/* Flush an earthworm ring */
-int traceBuffer_ewrr_flushRing(struct ewRing_struct *ringInfo);
-/* Finalize earthworm ring reader */
-int traceBuffer_ewrr_finalize(struct ewRing_struct *ringInfo);
-/* Frees memory on the tb2data structure */
-void traceBuffer_ewrr_freetb2Data(struct tb2Data_struct *tb2data);
-/* Frees memory on the tb2data trace structure */
-void traceBuffer_ewrr_freetb2Trace(const bool clearSNCL,
-                                   struct tb2Trace_struct *trace);
-/* Sets the tb2Data structure and desired SNCL's from the input gpsData */
-int traceBuffer_ewrr_settb2DataFromGFAST(struct GFAST_data_struct *gpsData,
-                                         struct tb2Data_struct *tb2Data);
-int traceBuffer_ewrr_printTB2Data(struct tb2Data_struct *tb2Data);
-/* Unpack messages */
-int traceBuffer_ewrr_unpackTraceBuf2Messages(
+/* Frees memory on the generictraceData structure */
+void traceBuffer_generictrace_freeGenerictraceData(struct generictraceData_struct *generictraceData);
+/* Frees memory on the generictraceData trace structure */
+void traceBuffer_generictrace_freeGenerictrace(const bool clearSNCL,
+                                   struct generictrace_struct *trace);
+/* Sets the generictraceData structure and desired SNCL's from the input gpsData */
+int traceBuffer_generictrace_setGenerictraceDataFromGFAST(struct GFAST_data_struct *gpsData,
+                                         struct generictraceData_struct *generictraceData);
+int traceBuffer_generictrace_printGenerictraceData(struct generictraceData_struct *generictraceData);
+/* Unpack messages and associated functions */
+int traceBuffer_generictrace_myCompare2(const void *x, const void *y);
+void traceBuffer_generictrace_printStringindex(struct string_index *d, int n);
+void traceBuffer_generictrace_sort2(struct string_index *vals, int n);
+int traceBuffer_generictrace_unpackTraceBuf2Messages(
     const int nRead,
     const char *msgs,
-    struct tb2Data_struct *tb2Data);
-int traceBuffer_ewrr_unpackGeojsonMessages(
+    struct generictraceData_struct *generictraceData);
+int traceBuffer_generictrace_unpackGeojsonMessages(
     const int nRead,
     const char *msgs,
     const int max_payload_size,
     struct h5traceBuffer_struct *h5traceBuffer,
-    struct tb2Data_struct *tb2Data);
+    struct generictraceData_struct *generictraceData);
 /* Reads a chunk of data from a Data group */
 double *traceBuffer_h5_readData(const hid_t groupID,
                                 const int ntraces,
@@ -235,7 +181,7 @@ double *traceBuffer_h5_readData(const hid_t groupID,
                                 double *gain, int *ierr);
 /* Sets data in h5 file */
 int traceBuffer_h5_setData(const double currentTime,
-                           struct tb2Data_struct tb2Data,
+                           struct generictraceData_struct generictraceData,
                            struct h5traceBuffer_struct h5traceBuffer);
 /* Copies the trace buffer to the GFAST structure */
 int traceBuffer_h5_copyTraceBufferToGFAST(

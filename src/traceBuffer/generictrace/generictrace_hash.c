@@ -8,7 +8,7 @@
 #include "gfast_traceBuffer.h"
 
 
-uint32_t traceBuffer_ewrr_hash(const char *s) {
+uint32_t traceBuffer_generictrace_hash(const char *s) {
     uint32_t hashval;
     // K&R[2]. In testing, 21 collisions with ~20k NSLCs
     // for (hashval = 0; *s != '\0'; s++) {
@@ -24,17 +24,17 @@ uint32_t traceBuffer_ewrr_hash(const char *s) {
     return hashval;
 }
 
-uint32_t traceBuffer_ewrr_make_hash(const char *s, uint32_t hashsize) {
-    return traceBuffer_ewrr_hash(s) % hashsize;
+uint32_t traceBuffer_generictrace_make_hash(const char *s, uint32_t hashsize) {
+    return traceBuffer_generictrace_hash(s) % hashsize;
 }
 
-struct tb2_node *traceBuffer_ewrr_hashmap_contains(struct tb2_hashmap_struct *hashmap,
+struct generictrace_node *traceBuffer_generictrace_hashmap_contains(struct generictrace_hashmap_struct *hashmap,
                                                    const char *name)
 {
-    struct tb2_node *np;
+    struct generictrace_node *np;
 
     // Advance through linked list
-    for (np = hashmap->map[traceBuffer_ewrr_make_hash(name, hashmap->hashsize)];
+    for (np = hashmap->map[traceBuffer_generictrace_make_hash(name, hashmap->hashsize)];
          np != NULL;np = np->next)
     {
         if (strcmp(name, np->name) == 0) {
@@ -45,11 +45,11 @@ struct tb2_node *traceBuffer_ewrr_hashmap_contains(struct tb2_hashmap_struct *ha
     return NULL;
 }
 
-int traceBuffer_ewrr_hashmap_remove(struct tb2_hashmap_struct *hashmap, const char *name) {
-    struct tb2_node *np, *np_prev;
+int traceBuffer_generictrace_hashmap_remove(struct generictrace_hashmap_struct *hashmap, const char *name) {
+    struct generictrace_node *np, *np_prev;
 
     // Advance through linked list
-    for (np = hashmap->map[traceBuffer_ewrr_make_hash(name, hashmap->hashsize)], np_prev = NULL;
+    for (np = hashmap->map[traceBuffer_generictrace_make_hash(name, hashmap->hashsize)], np_prev = NULL;
          np != NULL; np = np->next)
     {
         if (strcmp(name, np->name) == 0) {
@@ -57,9 +57,9 @@ int traceBuffer_ewrr_hashmap_remove(struct tb2_hashmap_struct *hashmap, const ch
             if (np_prev != NULL) {
                 np_prev->next = np->next;
             } else {
-                hashmap->map[traceBuffer_ewrr_make_hash(name, hashmap->hashsize)] = np->next;
+                hashmap->map[traceBuffer_generictrace_make_hash(name, hashmap->hashsize)] = np->next;
             }
-            traceBuffer_ewrr_free_node(np);
+            traceBuffer_generictrace_free_node(np);
             return 1;
         }
         np_prev = np;
@@ -67,21 +67,21 @@ int traceBuffer_ewrr_hashmap_remove(struct tb2_hashmap_struct *hashmap, const ch
     return 0;
 }
 
-struct tb2_node *traceBuffer_ewrr_hashmap_add(struct tb2_hashmap_struct *hashmap,
+struct generictrace_node *traceBuffer_generictrace_hashmap_add(struct generictrace_hashmap_struct *hashmap,
                                               const char *name,
                                               int index)
 {
-    struct tb2_node *np;
+    struct generictrace_node *np;
     uint32_t hashval;
 
-    if ((np = traceBuffer_ewrr_hashmap_contains(hashmap, name)) == NULL) {
+    if ((np = traceBuffer_generictrace_hashmap_contains(hashmap, name)) == NULL) {
         // Not found
-        np = (struct tb2_node *) malloc(sizeof(*np));
+        np = (struct generictrace_node *) malloc(sizeof(*np));
         if (np == NULL || (np->name = strdup(name)) == NULL) {
             printf("ERROR! No space for %s!\n", name);
             return NULL;
         }
-        hashval = traceBuffer_ewrr_make_hash(name, hashmap->hashsize);
+        hashval = traceBuffer_generictrace_make_hash(name, hashmap->hashsize);
         np->next = hashmap->map[hashval];
         hashmap->map[hashval] = np;
     } else {
@@ -91,27 +91,27 @@ struct tb2_node *traceBuffer_ewrr_hashmap_add(struct tb2_hashmap_struct *hashmap
     return np;
 }
 
-void traceBuffer_ewrr_free_node(struct tb2_node *np) {
+void traceBuffer_generictrace_free_node(struct generictrace_node *np) {
     free(np->name);
     free(np);
 }
 
-void traceBuffer_ewrr_free_hashmap(struct tb2_hashmap_struct *hashmap) {
-    struct tb2_node *np, *np_next;
+void traceBuffer_generictrace_free_hashmap(struct generictrace_hashmap_struct *hashmap) {
+    struct generictrace_node *np, *np_next;
     uint32_t i;
     for (i = 0; i < hashmap->hashsize; i++) {
         for (np = hashmap->map[i]; np != NULL; np = np_next) {
             np_next = np->next;
-            traceBuffer_ewrr_free_node(np);
+            traceBuffer_generictrace_free_node(np);
         }
     }
     free(hashmap->map);
     free(hashmap);
 }
 
-void traceBuffer_ewrr_print_hashmap(struct tb2_hashmap_struct *hashmap) {
+void traceBuffer_generictrace_print_hashmap(struct generictrace_hashmap_struct *hashmap) {
     unsigned i;
-    struct tb2_node *np;
+    struct generictrace_node *np;
     int cx, n_nodes, max_nodes = -1;
     const int max_nodes_to_print = 250;
     double running_sum = 0;
@@ -143,9 +143,9 @@ void traceBuffer_ewrr_print_hashmap(struct tb2_hashmap_struct *hashmap) {
 
 }
 
-int traceBuffer_ewrr_print_true_collisions(struct tb2_hashmap_struct *hashmap) {
+int traceBuffer_generictrace_print_true_collisions(struct generictrace_hashmap_struct *hashmap) {
     int n_nodes;
-    struct tb2_node *np;
+    struct generictrace_node *np;
     uint32_t *hashvals;
     char **names;
     int i, j, k;
@@ -160,7 +160,7 @@ int traceBuffer_ewrr_print_true_collisions(struct tb2_hashmap_struct *hashmap) {
 
         // Loop over linked nodes to get full hash values
         for (np = hashmap->map[i], j = 0; np != NULL; np = np->next, j++) {
-            hashvals[j] = traceBuffer_ewrr_hash(np->name);
+            hashvals[j] = traceBuffer_generictrace_hash(np->name);
             names[j] = strdup(np->name);
         }
 

@@ -15,30 +15,30 @@ struct geojson_struct {
     double rate;    /*!< Sampling rate (s) */
 };
 
-struct string_index {
-  char nscl[15];
-  char net[8];
-  char sta[8];
-  char cha[8];
-  char loc[8];
+// struct string_index {
+//   char nscl[15];
+//   char net[8];
+//   char sta[8];
+//   char cha[8];
+//   char loc[8];
 
-  double time;
-  int indx;
-  int nsamps;
-};
-void print_struct(struct string_index *d, int n);
-void sort2(struct string_index *vals, int n);
+//   double time;
+//   int indx;
+//   int nsamps;
+// };
+// void print_struct(struct string_index *d, int n);
+// void sort2(struct string_index *vals, int n);
 int splitSNCL(const char *cline, char stnm[64], char netw[64], char chan[64], char loc[64]);
 
 struct geojson_struct *unpackMessage(const char *msg, const int msg_size);
 void print_json_msg(struct geojson_struct *json_msg);
 
-int traceBuffer_ewrr_unpackGeojsonMessages(
+int traceBuffer_generictrace_unpackGeojsonMessages(
     const int nRead,
     const char *msgs,
     const int max_payload_size,
     struct h5traceBuffer_struct *h5traceBuffer,
-    struct tb2Data_struct *tb2Data)
+    struct generictraceData_struct *generictraceData)
 {
     int i, j, k, indx, ierr, nskip, debug, kold, ir, nReadPtr, i1, i2, kndx, im, npts, nchunks, ic, kchan, value;
     int *imap, *imsg, *kpts, *nmsg, *imapPtr;
@@ -48,18 +48,18 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
     struct geojson_struct *json_msg;
     struct geojson_struct *json_msgs;
     struct string_index *vals, *tmp;
-    struct tb2_node *node;
+    struct generictrace_node *node;
     const bool clearSNCL = false;
     const int nchan = 7; // 1, 3, 6, 7
 
-    // bool dump_tb2Data = false;
+    // bool dump_generictraceData = false;
     bool dump_nRead = false;
     // bool debug_imap = false;
     bool debug_nchunks = false;
     bool debug_cwu = false;
 
     // Nothing to do
-    if (tb2Data->ntraces == 0) {return 0;}
+    if (generictraceData->ntraces == 0) {return 0;}
     if (nRead == 0){return 0;}
 
     /** Variable descriptions
@@ -70,10 +70,10 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
      * Length nRead * nchan (+ 1) where nchan is channels per packet = 7 for geojson (use i)
      * vals      (nRead) header values of input packets, unsorted (input order)
      * tmp       (nRead) header values of input packets, sorted
-     * imap      (nRead + 1, or nRead * 7 + 1) kth tb2Data scnl msg target (imap[i] = kth tb2Data trace, only for traces that have data, otherwise -9)
+     * imap      (nRead + 1, or nRead * 7 + 1) kth generictraceData scnl msg target (imap[i] = kth generictraceData trace, only for traces that have data, otherwise -9)
      * imapPtr   (nRead + 1, or nRead * 7 + 1) pointer back to imap somehow? each new k starts = imap[imapPtr[ir]]?
      * 
-     * Length tb2Data->ntraces variables (use k)
+     * Length generictraceData->ntraces variables (use k)
      * kpts      (ntraces) kpts[k] = number of samples for given trace. Since data pts per message = 1, this should equal number of messages
      * nmsg      (ntraces) nmsg[k] = number of messages for given trace. Since data pts per message = 1, this should equal number of data points
      * 
@@ -82,8 +82,8 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
     debug = 0;
     imap  = memory_calloc32i(nRead * nchan + 1);
     imsg  = memory_calloc32i(nRead * nchan);
-    kpts  = memory_calloc32i(tb2Data->ntraces);
-    nmsg  = memory_calloc32i(tb2Data->ntraces);
+    kpts  = memory_calloc32i(generictraceData->ntraces);
+    nmsg  = memory_calloc32i(generictraceData->ntraces);
     imapPtr = memory_calloc32i(nRead * nchan + 1); // worst case size
     vals = (struct string_index *) calloc((size_t) nRead * nchan, sizeof(struct string_index));
     tmp = (struct string_index *) calloc((size_t) nRead * nchan, sizeof(struct string_index));
@@ -153,14 +153,14 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
         memcpy(&tmp[i], &vals[i], sizeof(struct string_index));
     }
 
-    // Sort the msg records by scnl + time to align with tb2Data slots:
-    sort2(tmp, nRead * nchan);
+    // Sort the msg records by scnl + time to align with generictraceData slots:
+    traceBuffer_generictrace_sort2(tmp, nRead * nchan);
 
     if (dump_nRead) {
         LOG_DEBUGMSG("%s", "CCC: Dump unsorted structs:");
-        print_struct(vals, nRead * nchan);
+        traceBuffer_generictrace_printStringindex(vals, nRead * nchan);
         LOG_DEBUGMSG("%s", "CCC: Dump sorted structs:");
-        print_struct(tmp, nRead * nchan);
+        traceBuffer_generictrace_printStringindex(tmp, nRead * nchan);
     }
 
     for (i = 0; i < nRead * nchan + 1; i++){
@@ -180,9 +180,9 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
         sprintf(nscl, "%s.%s.%s.%s", tmp[i].net, tmp[i].sta, tmp[i].cha, tmp[i].loc);
         // printf("nscl:%s, tmpchan:%s\n", nscl, tmpchan);
 
-        if ((node = traceBuffer_ewrr_hashmap_contains(tb2Data->hashmap, nscl)) == NULL) {
+        if ((node = traceBuffer_generictrace_hashmap_contains(generictraceData->hashmap, nscl)) == NULL) {
             if (debug_cwu) {
-                LOG_DEBUGMSG("unpackTB2: %s is in geojson msgs but not in tb2Data!", nscl);
+                LOG_DEBUGMSG("unpack: %s is in geojson msgs but not in generictraceData!", nscl);
             }
             nskip++;
         } else {
@@ -200,9 +200,9 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
     }
 
     // It's now sorted so that as you step through i: 1, ..., nRead,
-    // imsg[i] = next msg in sort order, while imap[i] = kth tb2Data scnl msg target
+    // imsg[i] = next msg in sort order, while imap[i] = kth generictraceData scnl msg target
     int n_chan_w_data = 0;
-    for (k = 0; k < tb2Data->ntraces; k++) {
+    for (k = 0; k < generictraceData->ntraces; k++) {
         if (nmsg[k] > 0) {
             n_chan_w_data++;
         }
@@ -226,26 +226,26 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
     nReadPtr = ir;
 
     LOG_DEBUGMSG("unpackGeojson nRead:%d ntraces:%d nReadPtr:%d",
-        nRead, tb2Data->ntraces, nReadPtr);
+        nRead, generictraceData->ntraces, nReadPtr);
 
     if (debug_cwu) {
-        LOG_DEBUGMSG("%s", "Printing tb2Data");
-        traceBuffer_ewrr_printTB2Data(tb2Data);
+        LOG_DEBUGMSG("%s", "Printing generictraceData");
+        traceBuffer_generictrace_printGenerictraceData(generictraceData);
     }
 
     // Now set the workspace
-    for (k = 0; k < tb2Data->ntraces; k++)
+    for (k = 0; k < generictraceData->ntraces; k++)
     {
-        traceBuffer_ewrr_freetb2Trace(clearSNCL, &tb2Data->traces[k]);
+        traceBuffer_generictrace_freeGenerictrace(clearSNCL, &generictraceData->traces[k]);
         if (kpts[k] > 0)
         {
-            tb2Data->traces[k].data  = memory_calloc32i(kpts[k]);
-            tb2Data->traces[k].times = memory_calloc64f(kpts[k]);
-            tb2Data->traces[k].chunkPtr = memory_calloc32i(nmsg[k] + 1);
-            tb2Data->traces[k].npts = kpts[k];
+            generictraceData->traces[k].data  = memory_calloc32i(kpts[k]);
+            generictraceData->traces[k].times = memory_calloc64f(kpts[k]);
+            generictraceData->traces[k].chunkPtr = memory_calloc32i(nmsg[k] + 1);
+            generictraceData->traces[k].npts = kpts[k];
             if (debug_cwu) {
                 LOG_DEBUGMSG("k:%d, %s.%s.%s.%s: kpts[k]=%d, nmsg[k]=%d",
-                    k, tb2Data->traces[k].netw, tb2Data->traces[k].stnm, tb2Data->traces[k].chan, tb2Data->traces[k].loc,
+                    k, generictraceData->traces[k].netw, generictraceData->traces[k].stnm, generictraceData->traces[k].chan, generictraceData->traces[k].loc,
                     kpts[k], nmsg[k]);
             }
         }
@@ -256,7 +256,7 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
             LOG_DEBUGMSG("imsg[%d]:%d, imap[%d]=%d, imapPtr[%d]=%d",
                  i, imsg[i], i, imap[i], i, imapPtr[i]);
         }
-        for (k = 0; k < tb2Data->ntraces; k++) {
+        for (k = 0; k < generictraceData->ntraces; k++) {
             LOG_DEBUGMSG("kpts[%d]=%d, nmsg[%d]=%d",
                 k, kpts[k], k, nmsg[k]);
         }
@@ -270,11 +270,11 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
         i2 = i1 + nmsg[k];
         kndx = 0;
         if (1) {
-            sprintf(buf, "%s.%s.%s.%s", tb2Data->traces[k].netw, tb2Data->traces[k].stnm,
-                tb2Data->traces[k].chan, tb2Data->traces[k].loc);
+            sprintf(buf, "%s.%s.%s.%s", generictraceData->traces[k].netw, generictraceData->traces[k].stnm,
+                generictraceData->traces[k].chan, generictraceData->traces[k].loc);
         }
 
-        tb2Data->traces[k].nchunks = 1;
+        generictraceData->traces[k].nchunks = 1;
 
         // Loop on the messages for this SNCL
         for (im = i1; im < i2; im++)
@@ -300,7 +300,7 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
             // npts = trh->nsamp;
             // dt = 1.0/trh->samprate;
 
-            tb2Data->traces[k].dt = dt;
+            generictraceData->traces[k].dt = dt;
             
 
             // ierr = fastUnpack(npts, lswap, dtype, &msgs[indx], resp);
@@ -310,47 +310,47 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
 
             // Is a new chunk beginning?
             if (im > i1) {
-                // if (fabs( (tb2Data->traces[k].times[kndx-1] + dt) - trh->starttime ) > 1.e-6) {
-                if (fabs( (tb2Data->traces[k].times[kndx-1] + dt) - (double)(json_msgs[i].time) / 1000 ) > 1.e-6) {
+                // if (fabs( (generictraceData->traces[k].times[kndx-1] + dt) - trh->starttime ) > 1.e-6) {
+                if (fabs( (generictraceData->traces[k].times[kndx-1] + dt) - (double)(json_msgs[i].time) / 1000 ) > 1.e-6) {
                     
                     // starttime exceeds dt --> start a new chunk
                     if (debug) {
                         LOG_DEBUGMSG("  ir:%d i1:%d im:%d k:%d %s kndx:%d npts:%d nchunks:%d start a new chunk",
-                                     ir, i1, im, k, buf, kndx, npts, tb2Data->traces[k].nchunks);
+                                     ir, i1, im, k, buf, kndx, npts, generictraceData->traces[k].nchunks);
                     }
-                    tb2Data->traces[k].chunkPtr[tb2Data->traces[k].nchunks] = kndx;
-                    tb2Data->traces[k].nchunks += 1;
-                    tb2Data->traces[k].chunkPtr[tb2Data->traces[k].nchunks] = kndx + npts;
+                    generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kndx;
+                    generictraceData->traces[k].nchunks += 1;
+                    generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kndx + npts;
                 }
                 else {
                     // starttime is within dt --> simply extend current chunk
                     if (debug) {
                         LOG_DEBUGMSG("  ir:%d i1:%d im:%d k:%d %s kndx:%d npts:%d nchunks:%d extend current chunk",
-                                     ir, i1, im, k, buf, kndx, npts, tb2Data->traces[k].nchunks);
+                                     ir, i1, im, k, buf, kndx, npts, generictraceData->traces[k].nchunks);
                     }
-                    tb2Data->traces[k].chunkPtr[tb2Data->traces[k].nchunks] = kndx + npts;
+                    generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kndx + npts;
                 }
             }
 
             // Update the points, reverse apply the gain to get int value 
             // Gain will be reapplied in traceBuffer_h5_copyTraceBufferToGFAST
-            if      (tb2Data->traces[k].chan[2] == 'Z'){value = (int)(json_msgs[i].coor[2] * h5traceBuffer->traces[k].gain);}
-            else if (tb2Data->traces[k].chan[2] == 'N'){value = (int)(json_msgs[i].coor[1] * h5traceBuffer->traces[k].gain);}
-            else if (tb2Data->traces[k].chan[2] == 'E'){value = (int)(json_msgs[i].coor[0] * h5traceBuffer->traces[k].gain);}
-            else if (tb2Data->traces[k].chan[2] == '3'){value = (int)(json_msgs[i].err[2] * h5traceBuffer->traces[k].gain);}
-            else if (tb2Data->traces[k].chan[2] == '2'){value = (int)(json_msgs[i].err[1] * h5traceBuffer->traces[k].gain);}
-            else if (tb2Data->traces[k].chan[2] == '1'){value = (int)(json_msgs[i].err[0] * h5traceBuffer->traces[k].gain);}
-            else if (tb2Data->traces[k].chan[2] == 'Q'){value = json_msgs[i].quality;}
-            else    {LOG_DEBUGMSG("ALERT! channel doesn't match ZNE321Q! %c", tb2Data->traces[k].chan[2]);}
+            if      (generictraceData->traces[k].chan[2] == 'Z'){value = (int)(json_msgs[i].coor[2] * h5traceBuffer->traces[k].gain);}
+            else if (generictraceData->traces[k].chan[2] == 'N'){value = (int)(json_msgs[i].coor[1] * h5traceBuffer->traces[k].gain);}
+            else if (generictraceData->traces[k].chan[2] == 'E'){value = (int)(json_msgs[i].coor[0] * h5traceBuffer->traces[k].gain);}
+            else if (generictraceData->traces[k].chan[2] == '3'){value = (int)(json_msgs[i].err[2] * h5traceBuffer->traces[k].gain);}
+            else if (generictraceData->traces[k].chan[2] == '2'){value = (int)(json_msgs[i].err[1] * h5traceBuffer->traces[k].gain);}
+            else if (generictraceData->traces[k].chan[2] == '1'){value = (int)(json_msgs[i].err[0] * h5traceBuffer->traces[k].gain);}
+            else if (generictraceData->traces[k].chan[2] == 'Q'){value = json_msgs[i].quality;}
+            else    {LOG_DEBUGMSG("ALERT! channel doesn't match ZNE321Q! %c", generictraceData->traces[k].chan[2]);}
 
-            // tb2Data->traces[k].data[kndx] = json_msgs[i]->coor;
-            tb2Data->traces[k].data[kndx] = value;
-            // tb2Data->traces[k].times[kndx + l] = trh->starttime + (double) l*dt;
-            tb2Data->traces[k].times[kndx] = (double)(json_msgs[i].time) / 1000;
+            // generictraceData->traces[k].data[kndx] = json_msgs[i]->coor;
+            generictraceData->traces[k].data[kndx] = value;
+            // generictraceData->traces[k].times[kndx + l] = trh->starttime + (double) l*dt;
+            generictraceData->traces[k].times[kndx] = (double)(json_msgs[i].time) / 1000;
 
             if (debug) {
-                LOG_DEBUGMSG("  unpackTB2  k:%4d scnl:%s time:%.2f data:%d, value:%d", 
-                            k, buf, tb2Data->traces[k].times[kndx], tb2Data->traces[k].data[kndx], value);
+                LOG_DEBUGMSG("  unpackGeojson  k:%4d scnl:%s time:%.2f data:%d, value:%d", 
+                            k, buf, generictraceData->traces[k].times[kndx], generictraceData->traces[k].data[kndx], value);
             }
             kndx = kndx + npts;
 
@@ -358,12 +358,12 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
 
         // Special case for one message
         if (i2 - i1 == 1 && kpts[k] > 0) {
-            tb2Data->traces[k].nchunks = 1;
-            tb2Data->traces[k].chunkPtr[tb2Data->traces[k].nchunks] = kpts[k];
+            generictraceData->traces[k].nchunks = 1;
+            generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kpts[k];
         }
         if (debug_nchunks) {
-          LOG_DEBUGMSG("  unpackTB2  k:%4d scnl:%s nmsg:%d kpts:%d i1:%d i2:%d nchunks:%d",
-                       k, buf, nmsg[k], kpts[k], i1, i2, tb2Data->traces[k].nchunks);
+          LOG_DEBUGMSG("  unpackGeojson  k:%4d scnl:%s nmsg:%d kpts:%d i1:%d i2:%d nchunks:%d",
+                       k, buf, nmsg[k], kpts[k], i1, i2, generictraceData->traces[k].nchunks);
         }
 
         // Reality check
@@ -372,29 +372,29 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
             LOG_ERRMSG("Lost count %d %d", kndx, kpts[k]);
             return -1;
         }
-        if (tb2Data->traces[k].nchunks > 0)
+        if (generictraceData->traces[k].nchunks > 0)
         {
-            nchunks = tb2Data->traces[k].nchunks;
-            if (tb2Data->traces[k].chunkPtr[nchunks] != tb2Data->traces[k].npts)
+            nchunks = generictraceData->traces[k].nchunks;
+            if (generictraceData->traces[k].chunkPtr[nchunks] != generictraceData->traces[k].npts)
             {
                 LOG_ERRMSG("Inconsistent number of points %d %d",
-                           tb2Data->traces[k].chunkPtr[nchunks],
-                           tb2Data->traces[k].npts);
+                           generictraceData->traces[k].chunkPtr[nchunks],
+                           generictraceData->traces[k].npts);
                 return -1;
             }
         }
 
 
         if (debug) {
-          LOG_DEBUGMSG("  unpackTB2  k:%4d nchunks:%d chunkPtr[0]:%d chunkPtr[nchunks]:%d total_npts:%d",
-                       k, tb2Data->traces[k].nchunks, tb2Data->traces[k].chunkPtr[0],
-                       tb2Data->traces[k].chunkPtr[nchunks], tb2Data->traces[k].npts);
+          LOG_DEBUGMSG("  unpackGeojson  k:%4d nchunks:%d chunkPtr[0]:%d chunkPtr[nchunks]:%d total_npts:%d",
+                       k, generictraceData->traces[k].nchunks, generictraceData->traces[k].chunkPtr[0],
+                       generictraceData->traces[k].chunkPtr[nchunks], generictraceData->traces[k].npts);
         }
 
     } // Loop on pointers
 
     if (debug_cwu) {
-        traceBuffer_ewrr_printTB2Data(tb2Data);
+        traceBuffer_generictrace_printGenerictraceData(generictraceData);
     }
 
     // Free space
@@ -412,7 +412,7 @@ int traceBuffer_ewrr_unpackGeojsonMessages(
     return 0;
 }
 
-// Move this to a different directory
+// Move this to a different directory?
 struct geojson_struct *unpackMessage(const char *msg, const int msg_size) {
     struct geojson_struct *json_msg;
     char *text;
@@ -532,63 +532,63 @@ void print_json_msg(struct geojson_struct *json_msg) {
 }
 
 // Defining comparator function as per the requirement
-static int myCompare2(const void *x, const void *y)
-{
-    // Should sort by s,n,l,c,time
-    const struct string_index xx = *(const struct string_index *) x;
-    const struct string_index yy = *(const struct string_index *) y;
-    int ista, inet, iloc, icha;
+// static int myCompare2(const void *x, const void *y)
+// {
+//     // Should sort by s,n,l,c,time
+//     const struct string_index xx = *(const struct string_index *) x;
+//     const struct string_index yy = *(const struct string_index *) y;
+//     int ista, inet, iloc, icha;
 
-    ista = strcmp(xx.sta, yy.sta);
-    if (ista == 0) {
-        inet = strcmp(xx.net, yy.net);
-        if (inet == 0) {
-            iloc = strcmp(xx.loc, yy.loc);
-            if (iloc == 0) {
-                icha = strcmp(xx.cha, yy.cha);
-                if (icha == 0) {
-                    if (xx.time > yy.time) {
-                        return 1;
-                    }
-                    else if (xx.time < yy.time) {
-                        return -1;
-                    }
-                    else {
-                        return 0;
-                    }
-                }
-                else { // order by {LYZ, LYN, LYE} to match tb2Data
-                    return -1 * icha;
-                }
-            }
-            else {
-                return iloc;
-            }
-        }
-        else {
-            return inet;
-        }
-    }
-    else {
-        return ista;
-    }
-}
+//     ista = strcmp(xx.sta, yy.sta);
+//     if (ista == 0) {
+//         inet = strcmp(xx.net, yy.net);
+//         if (inet == 0) {
+//             iloc = strcmp(xx.loc, yy.loc);
+//             if (iloc == 0) {
+//                 icha = strcmp(xx.cha, yy.cha);
+//                 if (icha == 0) {
+//                     if (xx.time > yy.time) {
+//                         return 1;
+//                     }
+//                     else if (xx.time < yy.time) {
+//                         return -1;
+//                     }
+//                     else {
+//                         return 0;
+//                     }
+//                 }
+//                 else { // order by {LYZ, LYN, LYE} to match generictraceData
+//                     return -1 * icha;
+//                 }
+//             }
+//             else {
+//                 return iloc;
+//             }
+//         }
+//         else {
+//             return inet;
+//         }
+//     }
+//     else {
+//         return ista;
+//     }
+// }
 
-// Function to sort the array
-void sort2(struct string_index values[], int n)
-{
-    // calling qsort function to sort the array
-    // with the help of Comparator
-    qsort((void *) values, (size_t) n, sizeof(struct string_index), myCompare2);
-}
+// // Function to sort the array
+// void sort2(struct string_index values[], int n)
+// {
+//     // calling qsort function to sort the array
+//     // with the help of Comparator
+//     qsort((void *) values, (size_t) n, sizeof(struct string_index), myCompare2);
+// }
 
-void print_struct(struct string_index *d, int n) {
-    int i;
-    for (i = 0; i < n; i++){
-        LOG_DEBUGMSG("CCC struct[%3d] indx:%5d: nscl:%s nsamps:%d time:%.2f",
-            i, d[i].indx, d[i].nscl, d[i].nsamps, d[i].time);
-    }
-}
+// void print_struct(struct string_index *d, int n) {
+//     int i;
+//     for (i = 0; i < n; i++){
+//         LOG_DEBUGMSG("CCC struct[%3d] indx:%5d: nscl:%s nsamps:%d time:%.2f",
+//             i, d[i].indx, d[i].nscl, d[i].nsamps, d[i].time);
+//     }
+// }
 
 int splitSNCL(const char *cline, char stnm[64], char netw[64], char chan[64], char loc[64]) {
     char *token, *work;

@@ -12,7 +12,7 @@ INCL            = -I ../../include $(HDF5_INCL) $(EW_INCL) $(CBLAS_INCL) $(ISCL_
 
 SYSLIBS		= -lpthread -lnsl -lrt -lz
 
-SDIRS	= ewrr h5
+SDIRS	= generictrace h5
 LIB	= traceBuffer.a
 OBJS := $(foreach dir,$(SDIRS),$(dir)/*.o) 
 

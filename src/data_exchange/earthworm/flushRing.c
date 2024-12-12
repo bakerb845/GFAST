@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "gfast_traceBuffer.h"
+// #include "gfast_traceBuffer.h"
+#include "gfast_dataexchange.h"
 #include "gfast_core.h"
 /*!
  * @brief Flushes the ring on ringInfo.
@@ -16,7 +17,7 @@
  * @copyright ISTI distributed under Apache 2.
  *
  */
-int traceBuffer_ewrr_flushRing(struct ewRing_struct *ringInfo)
+int dataexchange_earthworm_flushRing(struct ewRing_struct *ringInfo)
 {
     MSG_LOGO gotLogo;
     char msg[MAX_TRACEBUF_SIZ];
@@ -39,7 +40,7 @@ int traceBuffer_ewrr_flushRing(struct ewRing_struct *ringInfo)
                                 &gotLogo, &gotSize, msg, MAX_TRACEBUF_SIZ,
                                 &sequenceNumber);
         if (retval == GET_NONE){break;} // End of ring
-        //traceBuffer_ewrr_classifyGetRetval(retval);
+        //dataexchange_earthworm_classifyGetRetval(retval);
     }
     if (ringInfo->msWait > 0){sleep_ew(ringInfo->msWait);}
     return 0;

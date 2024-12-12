@@ -8,11 +8,11 @@ include $(GFASTROOT)/Make.include.$(MAKEHOST)
 
 DEBUG	= -g
 
-INCL            = -I ../../include $(INIPARSER_INCL) $(ISCL_INCL)
+INCL            = -I ../../include $(INIPARSER_INCL) $(ISCL_INCL) $(EW_INCL)
 
 SYSLIBS		= -lpthread -lnsl -lrt -lz
 
-SDIRS	= nats 
+SDIRS	= nats earthworm
 LIB	= gfast_dataexchange.a
 OBJS = dataExchange.o
 SUBOBJS = $(foreach dir,$(SDIRS),$(dir)/*.o) 

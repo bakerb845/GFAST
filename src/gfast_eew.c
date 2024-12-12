@@ -76,7 +76,7 @@ int main(int argc, char **argv)
     struct GFAST_cmtResults_struct cmt;
     struct GFAST_ffResults_struct ff;
     struct h5traceBuffer_struct h5traceBuffer;
-    struct tb2Data_struct tb2Data;
+    struct generictraceData_struct generictraceData;
     struct GFAST_offsetData_struct cmt_data, ff_data;
     struct GFAST_peakDisplacementData_struct pgd_data;
     struct GFAST_data_struct gps_data;
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
     memset(&ringInfo, 0, sizeof(struct ewRing_struct)); 
     memset(&xmlMessages, 0, sizeof(struct GFAST_xmlMessages_struct));
     memset(&h5traceBuffer, 0, sizeof(struct h5traceBuffer_struct));
-    memset(&tb2Data, 0, sizeof(struct tb2Data_struct));
+    memset(&generictraceData, 0, sizeof(struct generictraceData_struct));
 
     // Read the program properties
 #ifdef ENABLE_PLOG
@@ -337,14 +337,14 @@ int main(int argc, char **argv)
         goto ERROR;
     }
     // Set up the SNCL's to target
-    ierr = traceBuffer_ewrr_settb2DataFromGFAST(&gps_data, &tb2Data);
+    ierr = traceBuffer_generictrace_setGenerictraceDataFromGFAST(&gps_data, &generictraceData);
     if (ierr != 0) {
-        LOG_ERRMSG("%s: Error setting tb2Data\n", fcnm);
+        LOG_ERRMSG("%s: Error setting generictraceData\n", fcnm);
         goto ERROR;
     }
     // Connect to the earthworm ring
     LOG_MSG("%s: Connecting to earthworm ring %s", fcnm, ringInfo.ewRingName);
-    ierr = traceBuffer_ewrr_initialize(props.ew_props.gpsRingName,
+    ierr = dataexchange_earthworm_initialize(props.ew_props.gpsRingName,
                                        10,
                                        &ringInfo);
     if (ierr != 0) {
@@ -353,7 +353,7 @@ int main(int argc, char **argv)
     }
     // Flush the buffer
     LOG_MSG("%s: Flushing ring %s", fcnm, ringInfo.ewRingName);
-    ierr = traceBuffer_ewrr_flushRing(&ringInfo);
+    ierr = dataexchange_earthworm_flushRing(&ringInfo);
     if (ierr != 0) {
         LOG_ERRMSG("%s: Error flusing the ring\n", fcnm);
         goto ERROR;
@@ -413,10 +413,10 @@ int main(int argc, char **argv)
         LOG_MSG("== [GFAST t :%f] Get the msgs off the EW ring", time_timeStamp());
         double tbeger = time_timeStamp();
         memory_free8c(&msgs);
-        msgs = traceBuffer_ewrr_getMessagesFromRing(MAX_MESSAGES,
+        msgs = dataexchange_earthworm_getMessagesFromRing(MAX_MESSAGES,
                                                    false,
                                                    &ringInfo,
-                                                   tb2Data.hashmap,
+                                                   generictraceData.hashmap,
                                                    &nTracebufs2Read,
                                                    &ierr);
         LOG_MSG("== [GFAST t :%f] getMessages returned nTracebufs2Read:%d",
@@ -443,8 +443,8 @@ int main(int argc, char **argv)
         
         // Unpackage the tracebuf2 messages
         LOG_MSG("%s", "== Calling unpackTraceBuf2Messages");
-        ierr = traceBuffer_ewrr_unpackTraceBuf2Messages(nTracebufs2Read,
-            msgs, &tb2Data);
+        ierr = traceBuffer_generictrace_unpackTraceBuf2Messages(nTracebufs2Read,
+            msgs, &generictraceData);
         memory_free8c(&msgs);
         LOG_MSG("== Ending unpackTraceBuf2Messages: [Timing: %.4fs]",
             time_timeStamp() - tbeger);
@@ -455,7 +455,7 @@ int main(int argc, char **argv)
         
         // Update the hdf5 buffers
         ierr = traceBuffer_h5_setData(t1,
-                                      tb2Data,
+                                      generictraceData,
                                       h5traceBuffer);
         if (ierr != 0) {
             LOG_ERRMSG("%s: Error setting data in H5 file\n", fcnm);
@@ -622,8 +622,8 @@ int main(int argc, char **argv)
     ERROR:;
     memory_free8c(&msgs);
     core_events_freeEvents(&events);
-    traceBuffer_ewrr_freetb2Data(&tb2Data);
-    traceBuffer_ewrr_finalize(&ringInfo);
+    traceBuffer_generictrace_freeGenerictraceData(&generictraceData);
+    dataexchange_earthworm_finalize(&ringInfo);
     if (USE_AMQ) {
         // activeMQ_consumer_finalize(amqMessageListener);
         if (USE_DMLIB) {

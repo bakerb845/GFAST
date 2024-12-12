@@ -1,4 +1,4 @@
-# Makefile for GFAST/src/dataexchange/nats
+# Makefile for GFAST/src/dataexchange/earthworm
 #
 GFASTROOT=../..
 ifndef MAKEHOST
@@ -6,12 +6,12 @@ MAKEHOST=$(shell uname)
 endif
 include $(GFASTROOT)/Make.include.$(MAKEHOST)
 
-OBJS	= nats_consumer.o
+OBJS	= classifyRetval.o finalize.o flushRing.o getMessagesFromRing.o initialize.o
 
 DEBUG	= -g
 CCFLAGS	+= -O0 -D_REENTRANT -Dstatic_config
 
-INCL            = -I ../../../include $(NATS_INCL) $(EW_INCL)
+INCL            = -I ../../../include $(NATS_INCL) $(EW_INCL) $(ISCL_INCL)
 
 SYSLIBS		= -lpthread -lnsl -lrt -lz
 

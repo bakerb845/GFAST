@@ -9,6 +9,7 @@
 #include <math.h>
 #include <string.h>
 #include "gfast_traceBuffer.h"
+#include "gfast_dataexchange.h"
 #include "gfast_core.h"
 
 
@@ -30,7 +31,7 @@
  * @copyright ISTI distribted under Apache 2.
  *
  */
-int traceBuffer_ewrr_initialize(const char *ewRing,
+int dataexchange_earthworm_initialize(const char *ewRing,
                                 const int msWait,
                                 struct ewRing_struct *ringInfo)
 {

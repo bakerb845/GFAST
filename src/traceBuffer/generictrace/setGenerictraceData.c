@@ -8,13 +8,13 @@
  * @brief Initializes the data list which will be retained from a 
  *        ring read operation
  *
- * @param[in] ntraces   number of traces to create in tb2data 
+ * @param[in] ntraces   number of traces to create in generictraceData 
  * @param[in] nets      null terminated list of networks [ntraces]
  * @param[in] stats     null terminated list of stations [ntraces]
  * @param[in] chans     null terminated list of channels [ntraces]
  * @param[in] locs      null terminated list of location codes [ntraces]
  *
- * @param[out] tb2data  on successful output contains the SNCL's to 
+ * @param[out] generictraceData  on successful output contains the SNCL's to 
  *                      copy after each ring read
  *
  * @result 0 indicates success
@@ -24,12 +24,12 @@
  * @copyright Apache 2
  *
  */
-int traceBuffer_ewrr_settb2Data(const int ntraces,
+int traceBuffer_generictrace_setGenerictraceData(const int ntraces,
                                 const char **nets,
                                 const char **stats,
                                 const char **chans,
                                 const char **locs,
-                                struct tb2Data_struct *tb2data)
+                                struct generictraceData_struct *generictraceData)
 {
     int i;
     if (ntraces < 1 || nets == NULL || stats == NULL ||
@@ -57,22 +57,21 @@ int traceBuffer_ewrr_settb2Data(const int ntraces,
         }
         return -1;
     }
-    if (tb2data->linit)
+    if (generictraceData->linit)
     {
-        LOG_ERRMSG("%s", "Error tb2data already initialized");
+        LOG_ERRMSG("%s", "Error generictraceData already initialized");
         return -1;
     }
-    tb2data->traces = (struct tb2Trace_struct *)
-                      calloc( (size_t) ntraces,
-                             sizeof(struct tb2Trace_struct));
+    generictraceData->traces = (struct generictrace_struct *)
+        calloc( (size_t) ntraces, sizeof(struct generictrace_struct));
     for (i=0; i<ntraces; i++)
     {
-        strcpy(tb2data->traces[i].netw, nets[i]);
-        strcpy(tb2data->traces[i].stnm, stats[i]);
-        strcpy(tb2data->traces[i].chan, chans[i]);
-        strcpy(tb2data->traces[i].loc,  locs[i]);
+        strcpy(generictraceData->traces[i].netw, nets[i]);
+        strcpy(generictraceData->traces[i].stnm, stats[i]);
+        strcpy(generictraceData->traces[i].chan, chans[i]);
+        strcpy(generictraceData->traces[i].loc,  locs[i]);
     }
-    tb2data->ntraces = ntraces;
-    tb2data->linit = true;
+    generictraceData->ntraces = ntraces;
+    generictraceData->linit = true;
     return 0;
 }

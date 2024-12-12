@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "transport.h"
-#include "gfast_traceBuffer.h"
+// #include "gfast_traceBuffer.h"
 #include "gfast_core.h"
 
 /*!
@@ -22,7 +22,7 @@
  * @copyright ISTI distribted under Apache 2.
  *
  */
-int traceBuffer_ewrr_classifyGetRetval(const int retval)
+int dataexchange_earthworm_classifyGetRetval(const int retval)
 {
     char msg[128];
     // Got a requested message (modid, type, class)

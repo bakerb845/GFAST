@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "gfast_traceBuffer.h"
+#include "gfast_dataexchange.h"
 #include "gfast_core.h"
 /*!
  * @brief Disconnects from the ring and clears the earthworm ring structure.
@@ -19,7 +20,7 @@
  * @copyright ISTI distributed under Apache 2.
  *
  */
-int traceBuffer_ewrr_finalize(struct ewRing_struct *ringInfo)
+int dataexchange_earthworm_finalize(struct ewRing_struct *ringInfo)
 {
     if (!ringInfo->linit)
     {   

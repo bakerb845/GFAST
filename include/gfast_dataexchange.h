@@ -7,7 +7,7 @@ typedef rd_kafka_t* data_conn_ptr; /*!< Pointer to the data connection */
 #endif
 #ifdef GFAST_USE_NATS
 #include <nats/nats.h>
-typedef natsConnection * data_conn_ptr; /*!< Pointer to the data connection */
+// typedef natsConnection * data_conn_ptr; /*!< Pointer to the data connection */
 #endif
 #include "gfast_struct.h"
 #include "gfast_traceBuffer.h"

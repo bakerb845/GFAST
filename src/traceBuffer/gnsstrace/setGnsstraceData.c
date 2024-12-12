@@ -8,13 +8,13 @@
  * @brief Initializes the data list which will be retained from a 
  *        ring read operation
  *
- * @param[in] ntraces   number of traces to create in generictraceData 
+ * @param[in] ntraces   number of traces to create in gnsstraceData 
  * @param[in] nets      null terminated list of networks [ntraces]
  * @param[in] stats     null terminated list of stations [ntraces]
  * @param[in] chans     null terminated list of channels [ntraces]
  * @param[in] locs      null terminated list of location codes [ntraces]
  *
- * @param[out] generictraceData  on successful output contains the SNCL's to 
+ * @param[out] gnsstraceData  on successful output contains the SNCL's to 
  *                      copy after each ring read
  *
  * @result 0 indicates success
@@ -24,12 +24,12 @@
  * @copyright Apache 2
  *
  */
-int traceBuffer_generictrace_setGenerictraceData(const int ntraces,
+int traceBuffer_gnsstrace_setGnsstraceData(const int ntraces,
                                 const char **nets,
                                 const char **stats,
                                 const char **chans,
                                 const char **locs,
-                                struct generictraceData_struct *generictraceData)
+                                struct gnsstraceData_struct *gnsstraceData)
 {
     int i;
     if (ntraces < 1 || nets == NULL || stats == NULL ||
@@ -57,21 +57,21 @@ int traceBuffer_generictrace_setGenerictraceData(const int ntraces,
         }
         return -1;
     }
-    if (generictraceData->linit)
+    if (gnsstraceData->linit)
     {
-        LOG_ERRMSG("%s", "Error generictraceData already initialized");
+        LOG_ERRMSG("%s", "Error gnsstraceData already initialized");
         return -1;
     }
-    generictraceData->traces = (struct generictrace_struct *)
-        calloc( (size_t) ntraces, sizeof(struct generictrace_struct));
+    gnsstraceData->traces = (struct gnsstrace_struct *)
+        calloc( (size_t) ntraces, sizeof(struct gnsstrace_struct));
     for (i=0; i<ntraces; i++)
     {
-        strcpy(generictraceData->traces[i].netw, nets[i]);
-        strcpy(generictraceData->traces[i].stnm, stats[i]);
-        strcpy(generictraceData->traces[i].chan, chans[i]);
-        strcpy(generictraceData->traces[i].loc,  locs[i]);
+        strcpy(gnsstraceData->traces[i].netw, nets[i]);
+        strcpy(gnsstraceData->traces[i].stnm, stats[i]);
+        strcpy(gnsstraceData->traces[i].chan, chans[i]);
+        strcpy(gnsstraceData->traces[i].loc,  locs[i]);
     }
-    generictraceData->ntraces = ntraces;
-    generictraceData->linit = true;
+    gnsstraceData->ntraces = ntraces;
+    gnsstraceData->linit = true;
     return 0;
 }

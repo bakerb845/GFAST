@@ -26,19 +26,19 @@ static int fastUnpack(const int npts, const int lswap,
  * MTH: 2021/05 Rewrite of unpackTraceBuf2Messages.c
  *              Replace 4 loops/sorts with one sort of record struct
  * CWU: 2022/10 Rewrite unpackTraceBuf2Messages.c again
- *              Add loc to compare fxn, and use a hashmap into generictraceData
+ *              Add loc to compare fxn, and use a hashmap into gnsstraceData
  */
 
 /*!
  * @brief Unpacks the tracebuf2 messages read from the ring and returns
- *        the concatenated data for the desired SNCL's in the generictraceData struct
+ *        the concatenated data for the desired SNCL's in the gnsstraceData struct
  *
  * @param[in] nRead          number of traces read off the ring
  * @param[in] msgs           tracebuf2 messages read off ring.  the i'th message
  *                           is given by (i-1)*MAX_TRACEBUF_SIZ for
  *                           i=1,2,...,nRead
  *
- * @param[in,out] generictraceData    on input contains the desired SNCL's whose data 
+ * @param[in,out] gnsstraceData    on input contains the desired SNCL's whose data 
  *                           will be unpacked from the header (should it be
  *                           present).  
  *                           on output contains the data in the messages for
@@ -70,10 +70,10 @@ static int fastUnpack(const int npts, const int lswap,
 // void sort2(struct string_index *vals, int n);
 
 
-int traceBuffer_generictrace_unpackTraceBuf2Messages(
+int traceBuffer_gnsstrace_unpackTraceBuf2Messages(
     const int nRead,
     const char *msgs,
-    struct generictraceData_struct *generictraceData)
+    struct gnsstraceData_struct *gnsstraceData)
 {
     char *msg;
     TRACE2_HEADER  *trh;
@@ -82,7 +82,7 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
     int *imap, *imapPtr, *imsg, *iperm, *kpts, *nmsg, *resp,
         dtype, i, i1, i2, ierr, im, indx, ir, k, kndx, l, j,
         lswap, nchunks, nReadPtr, npts, nskip;
-    struct generictrace_node *node;
+    struct gnsstrace_node *node;
     const int maxpts = MAX_TRACEBUF_SIZ/16; // MAX_TRACEBUF_SIZ/sizeof(int16_t)
     const bool clearSNCL = false;
 
@@ -98,14 +98,14 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
 
     //------------------------------------------------------------------------//
     //
-    // Check the generictraceData was initialized
-    if (!generictraceData->linit)
+    // Check the gnsstraceData was initialized
+    if (!gnsstraceData->linit)
     {
-        LOG_ERRMSG("%s", "generictraceData never initialized");
+        LOG_ERRMSG("%s", "gnsstraceData never initialized");
         return -1;
     }
     // Nothing to do
-    if (generictraceData->ntraces == 0) {return 0;}
+    if (gnsstraceData->ntraces == 0) {return 0;}
     if (nRead == 0){return 0;}
 
     // Set the workspace
@@ -113,28 +113,28 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
     imap  = memory_calloc32i(nRead+1);
     imsg  = memory_calloc32i(nRead);
     iperm = memory_calloc32i(nRead);
-    kpts  = memory_calloc32i(generictraceData->ntraces);
-    nmsg  = memory_calloc32i(generictraceData->ntraces);
+    kpts  = memory_calloc32i(gnsstraceData->ntraces);
+    nmsg  = memory_calloc32i(gnsstraceData->ntraces);
     imapPtr = memory_calloc32i(nRead + 1); // worst case size
     times = memory_calloc64f(nRead);
     resp  = memory_calloc32i(maxpts);
     nsamps= memory_calloc32i(nRead);
     nscl  = memory_calloc8c(15);
 
-    for (i=0; i<nRead+1; i++) {imap[i] = generictraceData->ntraces + 1;}
+    for (i=0; i<nRead+1; i++) {imap[i] = gnsstraceData->ntraces + 1;}
 
-    LOG_DEBUGMSG("unpackTB2: Enter  nTraces:%d nRead:%d", generictraceData->ntraces, nRead);
+    LOG_DEBUGMSG("unpackTB2: Enter  nTraces:%d nRead:%d", gnsstraceData->ntraces, nRead);
 
-    bool dump_generictraceData = false;
+    bool dump_gnsstraceData = false;
     bool dump_nRead = false;
     bool debug_imap = false;
     bool debug_nchunks = false;
 
-    if (dump_generictraceData) {
-        for (k=0; k<generictraceData->ntraces; k++){
-            LOG_DEBUGMSG("CCC dump_generictraceData: %s.%s.%s.%s",
-                generictraceData->traces[k].stnm, generictraceData->traces[k].chan,
-                generictraceData->traces[k].netw, generictraceData->traces[k].loc);
+    if (dump_gnsstraceData) {
+        for (k=0; k<gnsstraceData->ntraces; k++){
+            LOG_DEBUGMSG("CCC dump_gnsstraceData: %s.%s.%s.%s",
+                gnsstraceData->traces[k].stnm, gnsstraceData->traces[k].chan,
+                gnsstraceData->traces[k].netw, gnsstraceData->traces[k].loc);
         }
         //exit(0);
     }
@@ -157,18 +157,18 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
     }
     if (dump_nRead) {
         LOG_DEBUGMSG("%s", "CCC: Dump unsorted structs:");
-        traceBuffer_generictrace_printStringindex(vals, nRead);
+        traceBuffer_gnsstrace_printStringindex(vals, nRead);
     }
 
     for (i=0; i<nRead; i++){
         memcpy(&tmp[i], &vals[i], sizeof(struct string_index));
     }
 
-    // Sort the msg records by scnl + time to align with generictraceData slots:
-    traceBuffer_generictrace_sort2(tmp, nRead);
+    // Sort the msg records by scnl + time to align with gnsstraceData slots:
+    traceBuffer_gnsstrace_sort2(tmp, nRead);
     if (dump_nRead){
         LOG_DEBUGMSG("%s", "CCC: Dump sorted structs:");
-        traceBuffer_generictrace_printStringindex(tmp, nRead);
+        traceBuffer_gnsstrace_printStringindex(tmp, nRead);
     }
 
     for (i=0; i<nRead; i++){
@@ -184,9 +184,9 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
         // imsg keeps msg sort order
         imsg[i] = j;
 
-        if ((node = traceBuffer_generictrace_hashmap_contains(generictraceData->hashmap, tmp[i].nscl)) == NULL) {
+        if ((node = traceBuffer_gnsstrace_hashmap_contains(gnsstraceData->hashmap, tmp[i].nscl)) == NULL) {
             if (debug) {
-                LOG_DEBUGMSG("unpackTB2: %s is in EW msgs but not in generictraceData!", tmp[i].nscl);
+                LOG_DEBUGMSG("unpackTB2: %s is in EW msgs but not in gnsstraceData!", tmp[i].nscl);
             }
             nskip++;
         } else {
@@ -198,9 +198,9 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
         }
     }
     // It's now sorted so that as you step through i: 1, ..., nRead,
-    // imsg[i] = next msg in sort order, while imap[i] = kth generictraceData scnl msg target
+    // imsg[i] = next msg in sort order, while imap[i] = kth gnsstraceData scnl msg target
     int n_chan_w_data = 0;
-    for (k = 0; k < generictraceData->ntraces; k++) {
+    for (k = 0; k < gnsstraceData->ntraces; k++) {
         if (nmsg[k] > 0) {
             n_chan_w_data++;
         }
@@ -212,7 +212,7 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
         for (i = 0; i < nRead; i++){
             k = imap[i];
             LOG_DEBUGMSG("CCC == imap[%d] --> k:%d %s.%s",
-                i, k, generictraceData->traces[k].stnm, generictraceData->traces[k].chan);
+                i, k, gnsstraceData->traces[k].stnm, gnsstraceData->traces[k].chan);
         }
     }
 
@@ -233,18 +233,18 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
     nReadPtr = ir;
 
     LOG_DEBUGMSG("unpackTB2 nRead:%d ntraces:%d nReadPtr:%d",
-        nRead, generictraceData->ntraces, nReadPtr);
+        nRead, gnsstraceData->ntraces, nReadPtr);
 
     // Now set the workspace
-    for (k = 0; k < generictraceData->ntraces; k++)
+    for (k = 0; k < gnsstraceData->ntraces; k++)
     {
-        traceBuffer_generictrace_freeGenerictrace(clearSNCL, &generictraceData->traces[k]);
+        traceBuffer_gnsstrace_freeGnsstrace(clearSNCL, &gnsstraceData->traces[k]);
         if (kpts[k] > 0)
         {
-            generictraceData->traces[k].data  = memory_calloc32i(kpts[k]);
-            generictraceData->traces[k].times = memory_calloc64f(kpts[k]);
-            generictraceData->traces[k].chunkPtr = memory_calloc32i(nmsg[k] + 1);
-            generictraceData->traces[k].npts = kpts[k];
+            gnsstraceData->traces[k].data  = memory_calloc32i(kpts[k]);
+            gnsstraceData->traces[k].times = memory_calloc64f(kpts[k]);
+            gnsstraceData->traces[k].chunkPtr = memory_calloc32i(nmsg[k] + 1);
+            gnsstraceData->traces[k].npts = kpts[k];
         }
     }
 
@@ -256,11 +256,11 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
         i2 = i1 + nmsg[k];
         kndx = 0;
         if (1) {
-            sprintf(buf, "%s.%s.%s.%s", generictraceData->traces[k].netw, generictraceData->traces[k].stnm,
-                generictraceData->traces[k].chan, generictraceData->traces[k].loc);
+            sprintf(buf, "%s.%s.%s.%s", gnsstraceData->traces[k].netw, gnsstraceData->traces[k].stnm,
+                gnsstraceData->traces[k].chan, gnsstraceData->traces[k].loc);
         }
 
-        generictraceData->traces[k].nchunks = 1;
+        gnsstraceData->traces[k].nchunks = 1;
 
         // Loop on the messages for this SNCL
         for (im = i1; im < i2; im++)
@@ -277,7 +277,7 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
             lswap = 0;
             npts = trh->nsamp;
             dt = 1.0/trh->samprate;
-            generictraceData->traces[k].dt = dt;
+            gnsstraceData->traces[k].dt = dt;
 
             ierr = fastUnpack(npts, lswap, dtype, &msgs[indx], resp);
             if (ierr != 0) {
@@ -286,23 +286,23 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
 
             // Is a new chunk beginning?
             if (im > i1) {
-                if (fabs( (generictraceData->traces[k].times[kndx-1] + dt) - trh->starttime ) > 1.e-6) {
+                if (fabs( (gnsstraceData->traces[k].times[kndx-1] + dt) - trh->starttime ) > 1.e-6) {
                     // starttime exceeds dt --> start a new chunk
                     if (debug) {
                         LOG_DEBUGMSG("ir:%d i1:%d im:%d k:%d %s kndx:%d npts:%d nchunks:%d start a new chunk",
-                                     ir, i1, im, k, buf, kndx, npts, generictraceData->traces[k].nchunks);
+                                     ir, i1, im, k, buf, kndx, npts, gnsstraceData->traces[k].nchunks);
                     }
-                    generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kndx;
-                    generictraceData->traces[k].nchunks += 1;
-                    generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kndx + npts;
+                    gnsstraceData->traces[k].chunkPtr[gnsstraceData->traces[k].nchunks] = kndx;
+                    gnsstraceData->traces[k].nchunks += 1;
+                    gnsstraceData->traces[k].chunkPtr[gnsstraceData->traces[k].nchunks] = kndx + npts;
                 }
                 else {
                     // starttime is within dt --> simply extend current chunk
                     if (debug) {
                         LOG_DEBUGMSG("ir:%d i1:%d im:%d k:%d %s kndx:%d npts:%d nchunks:%d extend current chunk",
-                                     ir, i1, im, k, buf, kndx, npts, generictraceData->traces[k].nchunks);
+                                     ir, i1, im, k, buf, kndx, npts, gnsstraceData->traces[k].nchunks);
                     }
-                    generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kndx + npts;
+                    gnsstraceData->traces[k].chunkPtr[gnsstraceData->traces[k].nchunks] = kndx + npts;
                 }
             }
 
@@ -312,12 +312,12 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
 #endif
             for (l=0; l<npts; l++)
             {
-                generictraceData->traces[k].data[kndx+l] = resp[l];
-                generictraceData->traces[k].times[kndx+l] = trh->starttime + (double) l*dt;
+                gnsstraceData->traces[k].data[kndx+l] = resp[l];
+                gnsstraceData->traces[k].times[kndx+l] = trh->starttime + (double) l*dt;
 
                 if (debug) {
                   LOG_DEBUGMSG("unpackTB2 k:%4d scnl:%s time:%.2f val:%d", 
-                               k, buf, generictraceData->traces[k].times[kndx+l], generictraceData->traces[k].data[kndx+l]);
+                               k, buf, gnsstraceData->traces[k].times[kndx+l], gnsstraceData->traces[k].data[kndx+l]);
                 }
             }
             kndx = kndx + npts;
@@ -326,12 +326,12 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
 
         // Special case for one message
         if (i2 - i1 == 1 && kpts[k] > 0) {
-            generictraceData->traces[k].nchunks = 1;
-            generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kpts[k];
+            gnsstraceData->traces[k].nchunks = 1;
+            gnsstraceData->traces[k].chunkPtr[gnsstraceData->traces[k].nchunks] = kpts[k];
         }
         if (debug_nchunks) {
           LOG_DEBUGMSG("unpackTB2: k:%4d scnl:%s nmsg:%d kpts:%d i1:%d i2:%d nchunks:%d",
-                       k, buf, nmsg[k], kpts[k], i1, i2, generictraceData->traces[k].nchunks);
+                       k, buf, nmsg[k], kpts[k], i1, i2, gnsstraceData->traces[k].nchunks);
         }
 
         // Reality check
@@ -340,14 +340,14 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
             LOG_ERRMSG("Lost count %d %d", kndx, kpts[k]);
             return -1;
         }
-        if (generictraceData->traces[k].nchunks > 0)
+        if (gnsstraceData->traces[k].nchunks > 0)
         {
-            nchunks = generictraceData->traces[k].nchunks;
-            if (generictraceData->traces[k].chunkPtr[nchunks] != generictraceData->traces[k].npts)
+            nchunks = gnsstraceData->traces[k].nchunks;
+            if (gnsstraceData->traces[k].chunkPtr[nchunks] != gnsstraceData->traces[k].npts)
             {
                 LOG_ERRMSG("Inconsistent number of points %d %d",
-                           generictraceData->traces[k].chunkPtr[nchunks],
-                           generictraceData->traces[k].npts);
+                           gnsstraceData->traces[k].chunkPtr[nchunks],
+                           gnsstraceData->traces[k].npts);
                 return -1;
             }
         }
@@ -355,8 +355,8 @@ int traceBuffer_generictrace_unpackTraceBuf2Messages(
 
         if (debug) {
           LOG_DEBUGMSG("unpackTB2  k:%4d nchunks:%d chunkPtr[0]:%d chunkPtr[nchunks]:%d total_npts:%d",
-                       k, generictraceData->traces[k].nchunks, generictraceData->traces[k].chunkPtr[0],
-                       generictraceData->traces[k].chunkPtr[nchunks], generictraceData->traces[k].npts);
+                       k, gnsstraceData->traces[k].nchunks, gnsstraceData->traces[k].chunkPtr[0],
+                       gnsstraceData->traces[k].chunkPtr[nchunks], gnsstraceData->traces[k].npts);
         }
 
     } // Loop on pointers
@@ -547,7 +547,7 @@ static int fastUnpack(const int npts, const int lswap,
 //                         return 0;
 //                     }
 //                 }
-//                 else { // order by {LYZ, LYN, LYE} to match generictraceData
+//                 else { // order by {LYZ, LYN, LYE} to match gnsstraceData
 //                     return -1 * icha;
 //                 }
 //             }

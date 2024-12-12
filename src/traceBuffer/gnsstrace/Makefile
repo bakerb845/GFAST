@@ -1,4 +1,4 @@
-# Makefile for GFAST/src/traceBuffer/generictrace
+# Makefile for GFAST/src/traceBuffer/gnsstrace
 #
 GFASTROOT=../..
 ifndef MAKEHOST
@@ -6,8 +6,8 @@ MAKEHOST=$(shell uname)
 endif
 include $(GFASTROOT)/Make.include.$(MAKEHOST)
 
-OBJS	= freeGenerictrace.o freeGenerictraceData.o setGenerictraceDataFromGFAST.o \
-generictrace_hash.o printGenerictraceData.o unpackSorter.o
+OBJS	= freeGnsstrace.o freeGnsstraceData.o setGnsstraceDataFromGFAST.o \
+gnsstrace_hash.o printGnsstraceData.o unpackSorter.o
 
 ifdef GFAST_USE_EW
 OBJS += unpackTraceBuf2Messages.o

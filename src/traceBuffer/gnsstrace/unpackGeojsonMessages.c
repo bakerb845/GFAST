@@ -33,12 +33,12 @@ int splitSNCL(const char *cline, char stnm[64], char netw[64], char chan[64], ch
 struct geojson_struct *unpackMessage(const char *msg, const int msg_size);
 void print_json_msg(struct geojson_struct *json_msg);
 
-int traceBuffer_generictrace_unpackGeojsonMessages(
+int traceBuffer_gnsstrace_unpackGeojsonMessages(
     const int nRead,
     const char *msgs,
     const int max_payload_size,
     struct h5traceBuffer_struct *h5traceBuffer,
-    struct generictraceData_struct *generictraceData)
+    struct gnsstraceData_struct *gnsstraceData)
 {
     int i, j, k, indx, ierr, nskip, debug, kold, ir, nReadPtr, i1, i2, kndx, im, npts, nchunks, ic, kchan, value;
     int *imap, *imsg, *kpts, *nmsg, *imapPtr;
@@ -48,18 +48,18 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
     struct geojson_struct *json_msg;
     struct geojson_struct *json_msgs;
     struct string_index *vals, *tmp;
-    struct generictrace_node *node;
+    struct gnsstrace_node *node;
     const bool clearSNCL = false;
     const int nchan = 7; // 1, 3, 6, 7
 
-    // bool dump_generictraceData = false;
+    // bool dump_gnsstraceData = false;
     bool dump_nRead = false;
     // bool debug_imap = false;
     bool debug_nchunks = false;
     bool debug_cwu = false;
 
     // Nothing to do
-    if (generictraceData->ntraces == 0) {return 0;}
+    if (gnsstraceData->ntraces == 0) {return 0;}
     if (nRead == 0){return 0;}
 
     /** Variable descriptions
@@ -70,10 +70,10 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
      * Length nRead * nchan (+ 1) where nchan is channels per packet = 7 for geojson (use i)
      * vals      (nRead) header values of input packets, unsorted (input order)
      * tmp       (nRead) header values of input packets, sorted
-     * imap      (nRead + 1, or nRead * 7 + 1) kth generictraceData scnl msg target (imap[i] = kth generictraceData trace, only for traces that have data, otherwise -9)
+     * imap      (nRead + 1, or nRead * 7 + 1) kth gnsstraceData scnl msg target (imap[i] = kth gnsstraceData trace, only for traces that have data, otherwise -9)
      * imapPtr   (nRead + 1, or nRead * 7 + 1) pointer back to imap somehow? each new k starts = imap[imapPtr[ir]]?
      * 
-     * Length generictraceData->ntraces variables (use k)
+     * Length gnsstraceData->ntraces variables (use k)
      * kpts      (ntraces) kpts[k] = number of samples for given trace. Since data pts per message = 1, this should equal number of messages
      * nmsg      (ntraces) nmsg[k] = number of messages for given trace. Since data pts per message = 1, this should equal number of data points
      * 
@@ -82,8 +82,8 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
     debug = 0;
     imap  = memory_calloc32i(nRead * nchan + 1);
     imsg  = memory_calloc32i(nRead * nchan);
-    kpts  = memory_calloc32i(generictraceData->ntraces);
-    nmsg  = memory_calloc32i(generictraceData->ntraces);
+    kpts  = memory_calloc32i(gnsstraceData->ntraces);
+    nmsg  = memory_calloc32i(gnsstraceData->ntraces);
     imapPtr = memory_calloc32i(nRead * nchan + 1); // worst case size
     vals = (struct string_index *) calloc((size_t) nRead * nchan, sizeof(struct string_index));
     tmp = (struct string_index *) calloc((size_t) nRead * nchan, sizeof(struct string_index));
@@ -153,14 +153,14 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
         memcpy(&tmp[i], &vals[i], sizeof(struct string_index));
     }
 
-    // Sort the msg records by scnl + time to align with generictraceData slots:
-    traceBuffer_generictrace_sort2(tmp, nRead * nchan);
+    // Sort the msg records by scnl + time to align with gnsstraceData slots:
+    traceBuffer_gnsstrace_sort2(tmp, nRead * nchan);
 
     if (dump_nRead) {
         LOG_DEBUGMSG("%s", "CCC: Dump unsorted structs:");
-        traceBuffer_generictrace_printStringindex(vals, nRead * nchan);
+        traceBuffer_gnsstrace_printStringindex(vals, nRead * nchan);
         LOG_DEBUGMSG("%s", "CCC: Dump sorted structs:");
-        traceBuffer_generictrace_printStringindex(tmp, nRead * nchan);
+        traceBuffer_gnsstrace_printStringindex(tmp, nRead * nchan);
     }
 
     for (i = 0; i < nRead * nchan + 1; i++){
@@ -180,9 +180,9 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
         sprintf(nscl, "%s.%s.%s.%s", tmp[i].net, tmp[i].sta, tmp[i].cha, tmp[i].loc);
         // printf("nscl:%s, tmpchan:%s\n", nscl, tmpchan);
 
-        if ((node = traceBuffer_generictrace_hashmap_contains(generictraceData->hashmap, nscl)) == NULL) {
+        if ((node = traceBuffer_gnsstrace_hashmap_contains(gnsstraceData->hashmap, nscl)) == NULL) {
             if (debug_cwu) {
-                LOG_DEBUGMSG("unpack: %s is in geojson msgs but not in generictraceData!", nscl);
+                LOG_DEBUGMSG("unpack: %s is in geojson msgs but not in gnsstraceData!", nscl);
             }
             nskip++;
         } else {
@@ -200,9 +200,9 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
     }
 
     // It's now sorted so that as you step through i: 1, ..., nRead,
-    // imsg[i] = next msg in sort order, while imap[i] = kth generictraceData scnl msg target
+    // imsg[i] = next msg in sort order, while imap[i] = kth gnsstraceData scnl msg target
     int n_chan_w_data = 0;
-    for (k = 0; k < generictraceData->ntraces; k++) {
+    for (k = 0; k < gnsstraceData->ntraces; k++) {
         if (nmsg[k] > 0) {
             n_chan_w_data++;
         }
@@ -226,26 +226,26 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
     nReadPtr = ir;
 
     LOG_DEBUGMSG("unpackGeojson nRead:%d ntraces:%d nReadPtr:%d",
-        nRead, generictraceData->ntraces, nReadPtr);
+        nRead, gnsstraceData->ntraces, nReadPtr);
 
     if (debug_cwu) {
-        LOG_DEBUGMSG("%s", "Printing generictraceData");
-        traceBuffer_generictrace_printGenerictraceData(generictraceData);
+        LOG_DEBUGMSG("%s", "Printing gnsstraceData");
+        traceBuffer_gnsstrace_printGnsstraceData(gnsstraceData);
     }
 
     // Now set the workspace
-    for (k = 0; k < generictraceData->ntraces; k++)
+    for (k = 0; k < gnsstraceData->ntraces; k++)
     {
-        traceBuffer_generictrace_freeGenerictrace(clearSNCL, &generictraceData->traces[k]);
+        traceBuffer_gnsstrace_freeGnsstrace(clearSNCL, &gnsstraceData->traces[k]);
         if (kpts[k] > 0)
         {
-            generictraceData->traces[k].data  = memory_calloc32i(kpts[k]);
-            generictraceData->traces[k].times = memory_calloc64f(kpts[k]);
-            generictraceData->traces[k].chunkPtr = memory_calloc32i(nmsg[k] + 1);
-            generictraceData->traces[k].npts = kpts[k];
+            gnsstraceData->traces[k].data  = memory_calloc32i(kpts[k]);
+            gnsstraceData->traces[k].times = memory_calloc64f(kpts[k]);
+            gnsstraceData->traces[k].chunkPtr = memory_calloc32i(nmsg[k] + 1);
+            gnsstraceData->traces[k].npts = kpts[k];
             if (debug_cwu) {
                 LOG_DEBUGMSG("k:%d, %s.%s.%s.%s: kpts[k]=%d, nmsg[k]=%d",
-                    k, generictraceData->traces[k].netw, generictraceData->traces[k].stnm, generictraceData->traces[k].chan, generictraceData->traces[k].loc,
+                    k, gnsstraceData->traces[k].netw, gnsstraceData->traces[k].stnm, gnsstraceData->traces[k].chan, gnsstraceData->traces[k].loc,
                     kpts[k], nmsg[k]);
             }
         }
@@ -256,7 +256,7 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
             LOG_DEBUGMSG("imsg[%d]:%d, imap[%d]=%d, imapPtr[%d]=%d",
                  i, imsg[i], i, imap[i], i, imapPtr[i]);
         }
-        for (k = 0; k < generictraceData->ntraces; k++) {
+        for (k = 0; k < gnsstraceData->ntraces; k++) {
             LOG_DEBUGMSG("kpts[%d]=%d, nmsg[%d]=%d",
                 k, kpts[k], k, nmsg[k]);
         }
@@ -270,11 +270,11 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
         i2 = i1 + nmsg[k];
         kndx = 0;
         if (1) {
-            sprintf(buf, "%s.%s.%s.%s", generictraceData->traces[k].netw, generictraceData->traces[k].stnm,
-                generictraceData->traces[k].chan, generictraceData->traces[k].loc);
+            sprintf(buf, "%s.%s.%s.%s", gnsstraceData->traces[k].netw, gnsstraceData->traces[k].stnm,
+                gnsstraceData->traces[k].chan, gnsstraceData->traces[k].loc);
         }
 
-        generictraceData->traces[k].nchunks = 1;
+        gnsstraceData->traces[k].nchunks = 1;
 
         // Loop on the messages for this SNCL
         for (im = i1; im < i2; im++)
@@ -300,7 +300,7 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
             // npts = trh->nsamp;
             // dt = 1.0/trh->samprate;
 
-            generictraceData->traces[k].dt = dt;
+            gnsstraceData->traces[k].dt = dt;
             
 
             // ierr = fastUnpack(npts, lswap, dtype, &msgs[indx], resp);
@@ -310,47 +310,47 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
 
             // Is a new chunk beginning?
             if (im > i1) {
-                // if (fabs( (generictraceData->traces[k].times[kndx-1] + dt) - trh->starttime ) > 1.e-6) {
-                if (fabs( (generictraceData->traces[k].times[kndx-1] + dt) - (double)(json_msgs[i].time) / 1000 ) > 1.e-6) {
+                // if (fabs( (gnsstraceData->traces[k].times[kndx-1] + dt) - trh->starttime ) > 1.e-6) {
+                if (fabs( (gnsstraceData->traces[k].times[kndx-1] + dt) - (double)(json_msgs[i].time) / 1000 ) > 1.e-6) {
                     
                     // starttime exceeds dt --> start a new chunk
                     if (debug) {
                         LOG_DEBUGMSG("  ir:%d i1:%d im:%d k:%d %s kndx:%d npts:%d nchunks:%d start a new chunk",
-                                     ir, i1, im, k, buf, kndx, npts, generictraceData->traces[k].nchunks);
+                                     ir, i1, im, k, buf, kndx, npts, gnsstraceData->traces[k].nchunks);
                     }
-                    generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kndx;
-                    generictraceData->traces[k].nchunks += 1;
-                    generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kndx + npts;
+                    gnsstraceData->traces[k].chunkPtr[gnsstraceData->traces[k].nchunks] = kndx;
+                    gnsstraceData->traces[k].nchunks += 1;
+                    gnsstraceData->traces[k].chunkPtr[gnsstraceData->traces[k].nchunks] = kndx + npts;
                 }
                 else {
                     // starttime is within dt --> simply extend current chunk
                     if (debug) {
                         LOG_DEBUGMSG("  ir:%d i1:%d im:%d k:%d %s kndx:%d npts:%d nchunks:%d extend current chunk",
-                                     ir, i1, im, k, buf, kndx, npts, generictraceData->traces[k].nchunks);
+                                     ir, i1, im, k, buf, kndx, npts, gnsstraceData->traces[k].nchunks);
                     }
-                    generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kndx + npts;
+                    gnsstraceData->traces[k].chunkPtr[gnsstraceData->traces[k].nchunks] = kndx + npts;
                 }
             }
 
             // Update the points, reverse apply the gain to get int value 
             // Gain will be reapplied in traceBuffer_h5_copyTraceBufferToGFAST
-            if      (generictraceData->traces[k].chan[2] == 'Z'){value = (int)(json_msgs[i].coor[2] * h5traceBuffer->traces[k].gain);}
-            else if (generictraceData->traces[k].chan[2] == 'N'){value = (int)(json_msgs[i].coor[1] * h5traceBuffer->traces[k].gain);}
-            else if (generictraceData->traces[k].chan[2] == 'E'){value = (int)(json_msgs[i].coor[0] * h5traceBuffer->traces[k].gain);}
-            else if (generictraceData->traces[k].chan[2] == '3'){value = (int)(json_msgs[i].err[2] * h5traceBuffer->traces[k].gain);}
-            else if (generictraceData->traces[k].chan[2] == '2'){value = (int)(json_msgs[i].err[1] * h5traceBuffer->traces[k].gain);}
-            else if (generictraceData->traces[k].chan[2] == '1'){value = (int)(json_msgs[i].err[0] * h5traceBuffer->traces[k].gain);}
-            else if (generictraceData->traces[k].chan[2] == 'Q'){value = json_msgs[i].quality;}
-            else    {LOG_DEBUGMSG("ALERT! channel doesn't match ZNE321Q! %c", generictraceData->traces[k].chan[2]);}
+            if      (gnsstraceData->traces[k].chan[2] == 'Z'){value = (int)(json_msgs[i].coor[2] * h5traceBuffer->traces[k].gain);}
+            else if (gnsstraceData->traces[k].chan[2] == 'N'){value = (int)(json_msgs[i].coor[1] * h5traceBuffer->traces[k].gain);}
+            else if (gnsstraceData->traces[k].chan[2] == 'E'){value = (int)(json_msgs[i].coor[0] * h5traceBuffer->traces[k].gain);}
+            else if (gnsstraceData->traces[k].chan[2] == '3'){value = (int)(json_msgs[i].err[2] * h5traceBuffer->traces[k].gain);}
+            else if (gnsstraceData->traces[k].chan[2] == '2'){value = (int)(json_msgs[i].err[1] * h5traceBuffer->traces[k].gain);}
+            else if (gnsstraceData->traces[k].chan[2] == '1'){value = (int)(json_msgs[i].err[0] * h5traceBuffer->traces[k].gain);}
+            else if (gnsstraceData->traces[k].chan[2] == 'Q'){value = json_msgs[i].quality;}
+            else    {LOG_DEBUGMSG("ALERT! channel doesn't match ZNE321Q! %c", gnsstraceData->traces[k].chan[2]);}
 
-            // generictraceData->traces[k].data[kndx] = json_msgs[i]->coor;
-            generictraceData->traces[k].data[kndx] = value;
-            // generictraceData->traces[k].times[kndx + l] = trh->starttime + (double) l*dt;
-            generictraceData->traces[k].times[kndx] = (double)(json_msgs[i].time) / 1000;
+            // gnsstraceData->traces[k].data[kndx] = json_msgs[i]->coor;
+            gnsstraceData->traces[k].data[kndx] = value;
+            // gnsstraceData->traces[k].times[kndx + l] = trh->starttime + (double) l*dt;
+            gnsstraceData->traces[k].times[kndx] = (double)(json_msgs[i].time) / 1000;
 
             if (debug) {
                 LOG_DEBUGMSG("  unpackGeojson  k:%4d scnl:%s time:%.2f data:%d, value:%d", 
-                            k, buf, generictraceData->traces[k].times[kndx], generictraceData->traces[k].data[kndx], value);
+                            k, buf, gnsstraceData->traces[k].times[kndx], gnsstraceData->traces[k].data[kndx], value);
             }
             kndx = kndx + npts;
 
@@ -358,12 +358,12 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
 
         // Special case for one message
         if (i2 - i1 == 1 && kpts[k] > 0) {
-            generictraceData->traces[k].nchunks = 1;
-            generictraceData->traces[k].chunkPtr[generictraceData->traces[k].nchunks] = kpts[k];
+            gnsstraceData->traces[k].nchunks = 1;
+            gnsstraceData->traces[k].chunkPtr[gnsstraceData->traces[k].nchunks] = kpts[k];
         }
         if (debug_nchunks) {
           LOG_DEBUGMSG("  unpackGeojson  k:%4d scnl:%s nmsg:%d kpts:%d i1:%d i2:%d nchunks:%d",
-                       k, buf, nmsg[k], kpts[k], i1, i2, generictraceData->traces[k].nchunks);
+                       k, buf, nmsg[k], kpts[k], i1, i2, gnsstraceData->traces[k].nchunks);
         }
 
         // Reality check
@@ -372,14 +372,14 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
             LOG_ERRMSG("Lost count %d %d", kndx, kpts[k]);
             return -1;
         }
-        if (generictraceData->traces[k].nchunks > 0)
+        if (gnsstraceData->traces[k].nchunks > 0)
         {
-            nchunks = generictraceData->traces[k].nchunks;
-            if (generictraceData->traces[k].chunkPtr[nchunks] != generictraceData->traces[k].npts)
+            nchunks = gnsstraceData->traces[k].nchunks;
+            if (gnsstraceData->traces[k].chunkPtr[nchunks] != gnsstraceData->traces[k].npts)
             {
                 LOG_ERRMSG("Inconsistent number of points %d %d",
-                           generictraceData->traces[k].chunkPtr[nchunks],
-                           generictraceData->traces[k].npts);
+                           gnsstraceData->traces[k].chunkPtr[nchunks],
+                           gnsstraceData->traces[k].npts);
                 return -1;
             }
         }
@@ -387,14 +387,14 @@ int traceBuffer_generictrace_unpackGeojsonMessages(
 
         if (debug) {
           LOG_DEBUGMSG("  unpackGeojson  k:%4d nchunks:%d chunkPtr[0]:%d chunkPtr[nchunks]:%d total_npts:%d",
-                       k, generictraceData->traces[k].nchunks, generictraceData->traces[k].chunkPtr[0],
-                       generictraceData->traces[k].chunkPtr[nchunks], generictraceData->traces[k].npts);
+                       k, gnsstraceData->traces[k].nchunks, gnsstraceData->traces[k].chunkPtr[0],
+                       gnsstraceData->traces[k].chunkPtr[nchunks], gnsstraceData->traces[k].npts);
         }
 
     } // Loop on pointers
 
     if (debug_cwu) {
-        traceBuffer_generictrace_printGenerictraceData(generictraceData);
+        traceBuffer_gnsstrace_printGnsstraceData(gnsstraceData);
     }
 
     // Free space
@@ -557,7 +557,7 @@ void print_json_msg(struct geojson_struct *json_msg) {
 //                         return 0;
 //                     }
 //                 }
-//                 else { // order by {LYZ, LYN, LYE} to match generictraceData
+//                 else { // order by {LYZ, LYN, LYE} to match gnsstraceData
 //                     return -1 * icha;
 //                 }
 //             }

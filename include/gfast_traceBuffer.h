@@ -25,18 +25,18 @@
 #include "gfast_config.h"
 
 /* Linked list node for hash_set */
-struct generictrace_node {
-    struct generictrace_node *next; /* next entry in chain */
+struct gnsstrace_node {
+    struct gnsstrace_node *next; /* next entry in chain */
     char *name;            /* defined name (NSCL) */
-    int i;                 /* index into generictraceData_struct for this NSCL */
+    int i;                 /* index into gnsstraceData_struct for this NSCL */
 };
 
-struct generictrace_hashmap_struct {
-    struct generictrace_node **map; /* hash array [hashsize] */
+struct gnsstrace_hashmap_struct {
+    struct gnsstrace_node **map; /* hash array [hashsize] */
     uint32_t hashsize;     /* hashsize for hashmap array */
 };
 
-struct generictrace_struct
+struct gnsstrace_struct
 {
     char netw[64];      /*!< Network name */
     char stnm[64];      /*!< Station name */
@@ -53,16 +53,16 @@ struct generictrace_struct
     int npts;           /*!< Number of points in times and data */
 };
 
-struct generictraceData_struct
+struct gnsstraceData_struct
 {
-    struct generictrace_struct *traces; /*!< Concatenated traces */
+    struct gnsstrace_struct *traces; /*!< Concatenated traces */
     int ntraces;                    /*!< Number of traces */
-    struct generictrace_hashmap_struct *hashmap; /*!< Hashmap for trace NSCLs */
+    struct gnsstrace_hashmap_struct *hashmap; /*!< Hashmap for trace NSCLs */
     bool linit;                     /*!< If true then the structure is 
                                          initialized. */
 };
 
-// Header information used to sort channel data before adding to generictraceData_struct
+// Header information used to sort channel data before adding to gnsstraceData_struct
 struct string_index {
   char nscl[15];
   char net[8];
@@ -126,53 +126,53 @@ extern "C"
 {
 #endif
 
-///// Methods for hashing generictrace channels
+///// Methods for hashing gnsstrace channels
 /* Hashing function */
-uint32_t traceBuffer_generictrace_hash(const char *s);
+uint32_t traceBuffer_gnsstrace_hash(const char *s);
 /* Calls hash() and returns index into array with given hashsize */
-uint32_t traceBuffer_generictrace_make_hash(const char *s, uint32_t hashsize);
+uint32_t traceBuffer_gnsstrace_make_hash(const char *s, uint32_t hashsize);
 /* Add a value to the set */
-struct generictrace_node *traceBuffer_generictrace_hashmap_add(struct generictrace_hashmap_struct *hashmap,
+struct gnsstrace_node *traceBuffer_gnsstrace_hashmap_add(struct gnsstrace_hashmap_struct *hashmap,
                                               const char *name,
                                               int index);
 /* Remove a value from the set */
-int traceBuffer_generictrace_hashmap_remove(struct generictrace_hashmap_struct *hashmap, const char *name);
+int traceBuffer_gnsstrace_hashmap_remove(struct gnsstrace_hashmap_struct *hashmap, const char *name);
 /* Check if set contains a value */
-struct generictrace_node *traceBuffer_generictrace_hashmap_contains(struct generictrace_hashmap_struct *hashmap,
+struct gnsstrace_node *traceBuffer_gnsstrace_hashmap_contains(struct gnsstrace_hashmap_struct *hashmap,
                                                    const char *name);
 /* Free hashmap node */
-void traceBuffer_generictrace_free_node(struct generictrace_node *np);
+void traceBuffer_gnsstrace_free_node(struct gnsstrace_node *np);
 /* Free hashmap table */
-void traceBuffer_generictrace_free_hashmap(struct generictrace_hashmap_struct *hashmap);
+void traceBuffer_gnsstrace_free_hashmap(struct gnsstrace_hashmap_struct *hashmap);
 /* Print the full set structure, for debugging */
-void traceBuffer_generictrace_print_hashmap(struct generictrace_hashmap_struct *hashmap);
+void traceBuffer_gnsstrace_print_hashmap(struct gnsstrace_hashmap_struct *hashmap);
 /* Use the un-modded hash value to determine whether there are any true collisions (debugging) */
-int traceBuffer_generictrace_print_true_collisions(struct generictrace_hashmap_struct *hashmap);
+int traceBuffer_gnsstrace_print_true_collisions(struct gnsstrace_hashmap_struct *hashmap);
 ///// End hashing functions
 
-/* Frees memory on the generictraceData structure */
-void traceBuffer_generictrace_freeGenerictraceData(struct generictraceData_struct *generictraceData);
-/* Frees memory on the generictraceData trace structure */
-void traceBuffer_generictrace_freeGenerictrace(const bool clearSNCL,
-                                   struct generictrace_struct *trace);
-/* Sets the generictraceData structure and desired SNCL's from the input gpsData */
-int traceBuffer_generictrace_setGenerictraceDataFromGFAST(struct GFAST_data_struct *gpsData,
-                                         struct generictraceData_struct *generictraceData);
-int traceBuffer_generictrace_printGenerictraceData(struct generictraceData_struct *generictraceData);
+/* Frees memory on the gnsstraceData structure */
+void traceBuffer_gnsstrace_freeGnsstraceData(struct gnsstraceData_struct *gnsstraceData);
+/* Frees memory on the gnsstraceData trace structure */
+void traceBuffer_gnsstrace_freeGnsstrace(const bool clearSNCL,
+                                   struct gnsstrace_struct *trace);
+/* Sets the gnsstraceData structure and desired SNCL's from the input gpsData */
+int traceBuffer_gnsstrace_setGnsstraceDataFromGFAST(struct GFAST_data_struct *gpsData,
+                                         struct gnsstraceData_struct *gnsstraceData);
+int traceBuffer_gnsstrace_printGnsstraceData(struct gnsstraceData_struct *gnsstraceData);
 /* Unpack messages and associated functions */
-int traceBuffer_generictrace_myCompare2(const void *x, const void *y);
-void traceBuffer_generictrace_printStringindex(struct string_index *d, int n);
-void traceBuffer_generictrace_sort2(struct string_index *vals, int n);
-int traceBuffer_generictrace_unpackTraceBuf2Messages(
+int traceBuffer_gnsstrace_myCompare2(const void *x, const void *y);
+void traceBuffer_gnsstrace_printStringindex(struct string_index *d, int n);
+void traceBuffer_gnsstrace_sort2(struct string_index *vals, int n);
+int traceBuffer_gnsstrace_unpackTraceBuf2Messages(
     const int nRead,
     const char *msgs,
-    struct generictraceData_struct *generictraceData);
-int traceBuffer_generictrace_unpackGeojsonMessages(
+    struct gnsstraceData_struct *gnsstraceData);
+int traceBuffer_gnsstrace_unpackGeojsonMessages(
     const int nRead,
     const char *msgs,
     const int max_payload_size,
     struct h5traceBuffer_struct *h5traceBuffer,
-    struct generictraceData_struct *generictraceData);
+    struct gnsstraceData_struct *gnsstraceData);
 /* Reads a chunk of data from a Data group */
 double *traceBuffer_h5_readData(const hid_t groupID,
                                 const int ntraces,
@@ -181,7 +181,7 @@ double *traceBuffer_h5_readData(const hid_t groupID,
                                 double *gain, int *ierr);
 /* Sets data in h5 file */
 int traceBuffer_h5_setData(const double currentTime,
-                           struct generictraceData_struct generictraceData,
+                           struct gnsstraceData_struct gnsstraceData,
                            struct h5traceBuffer_struct h5traceBuffer);
 /* Copies the trace buffer to the GFAST structure */
 int traceBuffer_h5_copyTraceBufferToGFAST(

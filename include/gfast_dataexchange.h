@@ -90,7 +90,7 @@ int dataexchange_earthworm_flushRing(struct ewRing_struct *ringInfo);
 char *dataexchange_earthworm_getMessagesFromRing(const int messageBlock,
                                            const bool showWarnings,
                                            struct ewRing_struct *ringInfo,
-                                           struct generictrace_hashmap_struct *hashmap,
+                                           struct gnsstrace_hashmap_struct *hashmap,
                                            int *nRead, int *ierr);
 /* Initialize the earthworm ring reader connection */
 int dataexchange_earthworm_initialize(const char *ewRing,

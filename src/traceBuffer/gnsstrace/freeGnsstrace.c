@@ -6,7 +6,7 @@
 #include "iscl/memory/memory.h"
 
 /*!
- * @brief Clears the memory, and optionally the SNCLs, on the generictrace_struct
+ * @brief Clears the memory, and optionally the SNCLs, on the gnsstrace_struct
  *        struct
  *
  * @param[in] clearSNCL  if true then also clear the SNCL on the trace
@@ -21,8 +21,8 @@
  * @copyright Apache 2
  *
  */
-void traceBuffer_generictrace_freeGenerictrace(const bool clearSNCL,
-                                   struct generictrace_struct *trace)
+void traceBuffer_gnsstrace_freeGnsstrace(const bool clearSNCL,
+                                   struct gnsstrace_struct *trace)
 {
     memory_free32i(&trace->data);
     memory_free64f(&trace->times);
@@ -32,7 +32,7 @@ void traceBuffer_generictrace_freeGenerictrace(const bool clearSNCL,
     trace->dt = 0.0;
     if (clearSNCL)
     {
-        memset(trace, 0, sizeof(struct generictrace_struct));
+        memset(trace, 0, sizeof(struct gnsstrace_struct));
     }
     return;
 }

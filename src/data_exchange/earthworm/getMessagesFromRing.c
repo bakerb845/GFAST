@@ -49,7 +49,7 @@
 char *dataexchange_earthworm_getMessagesFromRing(const int messageBlock,
                                            const bool showWarnings,
                                            struct ewRing_struct *ringInfo,
-                                           struct generictrace_hashmap_struct *hashmap,
+                                           struct gnsstrace_hashmap_struct *hashmap,
                                            int *nRead, int *ierr)
 {
   MSG_LOGO gotLogo; 
@@ -144,8 +144,8 @@ char *dataexchange_earthworm_getMessagesFromRing(const int messageBlock,
             nscl, traceHeader.starttime, traceHeader.nsamp);
         }
 
-        // Skip message if it isn't in the generictrace NSLC list
-        if (traceBuffer_generictrace_hashmap_contains(hashmap, nscl) == NULL) {
+        // Skip message if it isn't in the gnsstrace NSLC list
+        if (traceBuffer_gnsstrace_hashmap_contains(hashmap, nscl) == NULL) {
           if (debug) {
             LOG_DEBUGMSG("CCC getMsgs: skipping %s, not in hashmap", nscl);
           }

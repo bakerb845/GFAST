@@ -18,14 +18,14 @@ static int update_dataSet(const hid_t groupID,
 */
 
 /*!
- * @brief Sets the data in the HDF5 file from the data on the generictraceData 
+ * @brief Sets the data in the HDF5 file from the data on the gnsstraceData 
  *        buffer.  If any data is late then it will be filled with NaN's
  *        in the HDF5 file.
  *
  * @param[in] currentTime    current time (UTC seconds since epoch) to which to
  *                           update the HDF5 data buffers. 
- * @param[in] generictraceData        holds the tracebuffer2 data to be written to 
- *                           disk.  the SNCLs on generictraceData should correspond
+ * @param[in] gnsstraceData        holds the tracebuffer2 data to be written to 
+ *                           disk.  the SNCLs on gnsstraceData should correspond
  *                           to the SNCLs on h5TraceBuffer and the data should
  *                           be in temporal order. 
  * @param[in] h5traceBuffer  holds the HDF5 group names for each trace and
@@ -36,7 +36,7 @@ static int update_dataSet(const hid_t groupID,
  * @copyright Apache 2
  */
 int traceBuffer_h5_setData(const double currentTime,
-                           struct generictraceData_struct generictraceData,
+                           struct gnsstraceData_struct gnsstraceData,
                            struct h5traceBuffer_struct h5traceBuffer)
 {
     double *dwork, *gains, *work;
@@ -56,9 +56,9 @@ int traceBuffer_h5_setData(const double currentTime,
     }
     ierr = 0;
     ierrAll = 0;
-    if (!generictraceData.linit || !h5traceBuffer.linit)
+    if (!gnsstraceData.linit || !h5traceBuffer.linit)
     {
-        if (!generictraceData.linit){LOG_ERRMSG("%s", "Error generictraceData not set");}
+        if (!gnsstraceData.linit){LOG_ERRMSG("%s", "Error gnsstraceData not set");}
         if (!h5traceBuffer.linit){LOG_ERRMSG("%s", "h5traceBuffer not set");}
         return -1;
     }
@@ -82,19 +82,19 @@ int traceBuffer_h5_setData(const double currentTime,
     for (i=0; i<h5traceBuffer.ntraces; i++)
     {
         // Take an educated guess
-        if (i < generictraceData.ntraces)
+        if (i < gnsstraceData.ntraces)
         {
             if ((strcasecmp(h5traceBuffer.traces[i].netw,
-                                  generictraceData.traces[i].netw) == 0) &&
+                                  gnsstraceData.traces[i].netw) == 0) &&
                 (strcasecmp(h5traceBuffer.traces[i].stnm,
-                                  generictraceData.traces[i].stnm) == 0) && 
+                                  gnsstraceData.traces[i].stnm) == 0) && 
                 (strcasecmp(h5traceBuffer.traces[i].chan,
-                                  generictraceData.traces[i].chan) == 0) &&
+                                  gnsstraceData.traces[i].chan) == 0) &&
                 (strcasecmp(h5traceBuffer.traces[i].loc,
-                                  generictraceData.traces[i].loc)  == 0))
+                                  gnsstraceData.traces[i].loc)  == 0))
             {
                 map[i] = i;
-                if (generictraceData.traces[i].npts > 0)
+                if (gnsstraceData.traces[i].npts > 0)
                 {
                     lhaveData[i] = true; 
                 }
@@ -102,7 +102,7 @@ int traceBuffer_h5_setData(const double currentTime,
             }
         }
         if (debug) {
-            LOG_DEBUGMSG("h5traceBuffer and generictraceData didn't match, going hunting (inefficient)! i:%d, %s.%s.%s.%s",
+            LOG_DEBUGMSG("h5traceBuffer and gnsstraceData didn't match, going hunting (inefficient)! i:%d, %s.%s.%s.%s",
                 i,
                 h5traceBuffer.traces[i].netw,
                 h5traceBuffer.traces[i].stnm,
@@ -110,19 +110,19 @@ int traceBuffer_h5_setData(const double currentTime,
                 h5traceBuffer.traces[i].loc)
         }
         // Hunt through the tracebuffers
-        for (k=0; k<generictraceData.ntraces; k++)
+        for (k=0; k<gnsstraceData.ntraces; k++)
         {
             if ((strcasecmp(h5traceBuffer.traces[i].netw,
-                                  generictraceData.traces[k].netw) == 0) &&
+                                  gnsstraceData.traces[k].netw) == 0) &&
                 (strcasecmp(h5traceBuffer.traces[i].stnm,
-                                  generictraceData.traces[k].stnm) == 0) &&  
+                                  gnsstraceData.traces[k].stnm) == 0) &&  
                 (strcasecmp(h5traceBuffer.traces[i].chan,
-                                  generictraceData.traces[k].chan) == 0) &&
+                                  gnsstraceData.traces[k].chan) == 0) &&
                 (strcasecmp(h5traceBuffer.traces[i].loc,
-                                  generictraceData.traces[k].loc)  == 0)) 
+                                  gnsstraceData.traces[k].loc)  == 0)) 
             {
                 map[i] = k;
-                if (generictraceData.traces[i].npts > 0)
+                if (gnsstraceData.traces[i].npts > 0)
                 {
                     lhaveData[i] = true;
                 }
@@ -214,47 +214,47 @@ NEXT_TRACE:;
         for (k=k1; k<k2; k++)
         {
             if (!lhaveData[k]){continue;}
-            i = map[k]; // points to generictrace
-            nchunks = generictraceData.traces[i].nchunks;
-            c1 = generictraceData.traces[i].chunkPtr[0]; 
-            c2 = generictraceData.traces[i].chunkPtr[nchunks];
-            if (c2 - c1 <= 0 || c2 - c1 != generictraceData.traces[i].npts)
+            i = map[k]; // points to gnsstrace
+            nchunks = gnsstraceData.traces[i].nchunks;
+            c1 = gnsstraceData.traces[i].chunkPtr[0]; 
+            c2 = gnsstraceData.traces[i].chunkPtr[nchunks];
+            if (c2 - c1 <= 0 || c2 - c1 != gnsstraceData.traces[i].npts)
             {
                 LOG_ERRMSG("npts to update is invalid %d %d %d",
-                           c1, c2, generictraceData.traces[i].npts);
-                LOG_DEBUGMSG("setData: i=%d generictraceData %s.%s npts:%d nchunks:%d chunkPtr[0]=%d chunkPtr[nchunks]=%d (c2-c1) != npts!",
-                        i, generictraceData.traces[i].stnm, generictraceData.traces[i].chan, generictraceData.traces[i].npts, generictraceData.traces[i].nchunks, c1, c2);
+                           c1, c2, gnsstraceData.traces[i].npts);
+                LOG_DEBUGMSG("setData: i=%d gnsstraceData %s.%s npts:%d nchunks:%d chunkPtr[0]=%d chunkPtr[nchunks]=%d (c2-c1) != npts!",
+                        i, gnsstraceData.traces[i].stnm, gnsstraceData.traces[i].chan, gnsstraceData.traces[i].npts, gnsstraceData.traces[i].nchunks, c1, c2);
                 return -1;
             }
             for (chunk=0; chunk<nchunks; chunk++)
             {
-                i1 = generictraceData.traces[i].chunkPtr[chunk];
-                i2 = generictraceData.traces[i].chunkPtr[chunk+1];
+                i1 = gnsstraceData.traces[i].chunkPtr[chunk];
+                i2 = gnsstraceData.traces[i].chunkPtr[chunk+1];
                 for (is=i1; is<i2; is++)
                 {
                     // data expired
-                    if (generictraceData.traces[i].times[is] < ts1){
+                    if (gnsstraceData.traces[i].times[is] < ts1){
                       continue;
                     }
                     // insert it
                     indx = k*maxpts
-                         + (int) ((generictraceData.traces[i].times[is] - ts1)/dt + 0.5);
+                         + (int) ((gnsstraceData.traces[i].times[is] - ts1)/dt + 0.5);
                     //printf("k=%d indx=%d set dwork[indx]\n", k, indx);
 
-                    dwork[indx] = (double) generictraceData.traces[i].data[is];
+                    dwork[indx] = (double) gnsstraceData.traces[i].data[is];
                     // MTH: The current data point is always getting inserted to the same indx as
-                    // the buffer moves along, so does ts1, ts2, generictraceData[i].times[is], maintaining their offset
+                    // the buffer moves along, so does ts1, ts2, gnsstraceData[i].times[is], maintaining their offset
 
                     if (debug) {
                         LOG_DEBUGMSG("setData: ts2:%.2f is:%d %s.%s.%s.%s chk:%d indx0:%d ts1:%.2f msg t:%.3f =idx:%4d set dwork[%4d]:%8.2f dwork[%4d]:%8.2f",
                             ts2,
                             is,
-                            generictraceData.traces[i].netw, generictraceData.traces[i].stnm,
-                            generictraceData.traces[i].chan, generictraceData.traces[i].loc,
+                            gnsstraceData.traces[i].netw, gnsstraceData.traces[i].stnm,
+                            gnsstraceData.traces[i].chan, gnsstraceData.traces[i].loc,
                             chunk,
                             (k*maxpts),
                             ts1,
-                            generictraceData.traces[i].times[is],
+                            gnsstraceData.traces[i].times[is],
                             indx,
                             indx,
                             dwork[indx],

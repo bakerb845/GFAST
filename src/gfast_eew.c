@@ -76,7 +76,7 @@ int main(int argc, char **argv)
     struct GFAST_cmtResults_struct cmt;
     struct GFAST_ffResults_struct ff;
     struct h5traceBuffer_struct h5traceBuffer;
-    struct generictraceData_struct generictraceData;
+    struct gnsstraceData_struct gnsstraceData;
     struct GFAST_offsetData_struct cmt_data, ff_data;
     struct GFAST_peakDisplacementData_struct pgd_data;
     struct GFAST_data_struct gps_data;
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
     memset(&ringInfo, 0, sizeof(struct ewRing_struct)); 
     memset(&xmlMessages, 0, sizeof(struct GFAST_xmlMessages_struct));
     memset(&h5traceBuffer, 0, sizeof(struct h5traceBuffer_struct));
-    memset(&generictraceData, 0, sizeof(struct generictraceData_struct));
+    memset(&gnsstraceData, 0, sizeof(struct gnsstraceData_struct));
 
     // Read the program properties
 #ifdef ENABLE_PLOG
@@ -337,9 +337,9 @@ int main(int argc, char **argv)
         goto ERROR;
     }
     // Set up the SNCL's to target
-    ierr = traceBuffer_generictrace_setGenerictraceDataFromGFAST(&gps_data, &generictraceData);
+    ierr = traceBuffer_gnsstrace_setGnsstraceDataFromGFAST(&gps_data, &gnsstraceData);
     if (ierr != 0) {
-        LOG_ERRMSG("%s: Error setting generictraceData\n", fcnm);
+        LOG_ERRMSG("%s: Error setting gnsstraceData\n", fcnm);
         goto ERROR;
     }
     // Connect to the earthworm ring
@@ -416,7 +416,7 @@ int main(int argc, char **argv)
         msgs = dataexchange_earthworm_getMessagesFromRing(MAX_MESSAGES,
                                                    false,
                                                    &ringInfo,
-                                                   generictraceData.hashmap,
+                                                   gnsstraceData.hashmap,
                                                    &nTracebufs2Read,
                                                    &ierr);
         LOG_MSG("== [GFAST t :%f] getMessages returned nTracebufs2Read:%d",
@@ -443,8 +443,8 @@ int main(int argc, char **argv)
         
         // Unpackage the tracebuf2 messages
         LOG_MSG("%s", "== Calling unpackTraceBuf2Messages");
-        ierr = traceBuffer_generictrace_unpackTraceBuf2Messages(nTracebufs2Read,
-            msgs, &generictraceData);
+        ierr = traceBuffer_gnsstrace_unpackTraceBuf2Messages(nTracebufs2Read,
+            msgs, &gnsstraceData);
         memory_free8c(&msgs);
         LOG_MSG("== Ending unpackTraceBuf2Messages: [Timing: %.4fs]",
             time_timeStamp() - tbeger);
@@ -455,7 +455,7 @@ int main(int argc, char **argv)
         
         // Update the hdf5 buffers
         ierr = traceBuffer_h5_setData(t1,
-                                      generictraceData,
+                                      gnsstraceData,
                                       h5traceBuffer);
         if (ierr != 0) {
             LOG_ERRMSG("%s: Error setting data in H5 file\n", fcnm);
@@ -622,7 +622,7 @@ int main(int argc, char **argv)
     ERROR:;
     memory_free8c(&msgs);
     core_events_freeEvents(&events);
-    traceBuffer_generictrace_freeGenerictraceData(&generictraceData);
+    traceBuffer_gnsstrace_freeGnsstraceData(&gnsstraceData);
     dataexchange_earthworm_finalize(&ringInfo);
     if (USE_AMQ) {
         // activeMQ_consumer_finalize(amqMessageListener);

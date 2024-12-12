@@ -76,7 +76,7 @@ int main(int argc, char **argv)
     struct GFAST_cmtResults_struct cmt;
     struct GFAST_ffResults_struct ff;
     struct h5traceBuffer_struct h5traceBuffer;
-    struct generictraceData_struct generictraceData;
+    struct gnsstraceData_struct gnsstraceData;
     struct GFAST_offsetData_struct cmt_data, ff_data;
     struct GFAST_peakDisplacementData_struct pgd_data;
     struct GFAST_data_struct gps_data;
@@ -89,7 +89,6 @@ int main(int argc, char **argv)
     // Generic connection pointers, for NATS or Kafka
     void *connection = NULL;
     void *subscription = NULL;
-
 
     char *msgs;
     double t0, t1;
@@ -180,7 +179,7 @@ int main(int argc, char **argv)
     memset(&ringInfo, 0, sizeof(struct ewRing_struct)); 
     memset(&xmlMessages, 0, sizeof(struct GFAST_xmlMessages_struct));
     memset(&h5traceBuffer, 0, sizeof(struct h5traceBuffer_struct));
-    memset(&generictraceData, 0, sizeof(struct generictraceData_struct));
+    memset(&gnsstraceData, 0, sizeof(struct gnsstraceData_struct));
 
     // Read the program properties
 #ifdef ENABLE_PLOG
@@ -343,12 +342,14 @@ int main(int argc, char **argv)
         goto ERROR;
     }
     // Set up the SNCL's to target
-    ierr = traceBuffer_generictrace_setGenerictraceDataFromGFAST(&gps_data, &generictraceData);
+    ierr = traceBuffer_gnsstrace_setGnsstraceDataFromGFAST(&gps_data, &gnsstraceData);
     if (ierr != 0) {
-        LOG_ERRMSG("%s: Error setting generictraceData\n", fcnm);
+        LOG_ERRMSG("%s: Error setting gnsstraceData\n", fcnm);
         goto ERROR;
     }
+
     // Connect to the earthworm ring
+    // TODO: move to dataexchange_initializeDataConnection
     LOG_MSG("%s: Connecting to earthworm ring %s", fcnm, ringInfo.ewRingName);
     ierr = dataexchange_earthworm_initialize(props.ew_props.gpsRingName,
                                        10,
@@ -358,6 +359,7 @@ int main(int argc, char **argv)
         goto ERROR;
     }
     // Flush the buffer
+    // TODO: move to dataexchange_initializeDataConnection
     LOG_MSG("%s: Flushing ring %s", fcnm, ringInfo.ewRingName);
     ierr = dataexchange_earthworm_flushRing(&ringInfo);
     if (ierr != 0) {
@@ -426,7 +428,7 @@ int main(int argc, char **argv)
         // msgs = dataexchange_earthworm_getMessagesFromRing(MAX_MESSAGES,
         //                                            false,
         //                                            &ringInfo,
-        //                                            generictraceData.hashmap,
+        //                                            gnsstraceData.hashmap,
         //                                            &nDataRead,
         //                                            &ierr);
         // LOG_MSG("== [GFAST t :%f] getMessages returned nDataRead:%d",
@@ -453,27 +455,29 @@ int main(int argc, char **argv)
         const int max_payload_size = 1024;
         const int message_block = 10000;
         memory_free8c(&msgs);
+        // TODO: Add Earthworm call options within this function
         msgs = dataexchange_getMessages(&subscription, max_payload_size, message_block, &nDataRead, &ierr);
         LOG_MSG("Got %d messages [Timing: %.4fs]", nDataRead, time_timeStamp() - tbeger);
         tbeger = time_timeStamp();
         
-#ifdef GFAST_USE_EW   
-        // Unpackage the tracebuf2 messages
-        LOG_MSG("%s", "== Calling unpackTraceBuf2Messages");
-        ierr = traceBuffer_generictrace_unpackTraceBuf2Messages(
-            nDataRead, msgs, &generictraceData);
-        memory_free8c(&msgs);
-        LOG_MSG("== Ending unpackTraceBuf2Messages: [Timing: %.4fs]",
-            time_timeStamp() - tbeger);
-        if (ierr != 0) {
-            LOG_ERRMSG("%s: Error unpacking tracebuf2 messages\n", fcnm);
-            goto ERROR;
-        }
-#endif
+// #ifdef GFAST_USE_EW   
+//         // Unpackage the tracebuf2 messages
+//         LOG_MSG("%s", "== Calling unpackTraceBuf2Messages");
+//         ierr = traceBuffer_gnsstrace_unpackTraceBuf2Messages(
+//             nDataRead, msgs, &gnsstraceData);
+//         memory_free8c(&msgs);
+//         LOG_MSG("== Ending unpackTraceBuf2Messages: [Timing: %.4fs]",
+//             time_timeStamp() - tbeger);
+//         if (ierr != 0) {
+//             LOG_ERRMSG("%s: Error unpacking tracebuf2 messages\n", fcnm);
+//             goto ERROR;
+//         }
+// #endif
 #ifdef GFAST_ENABLE_GEOJSON
+        // Unpackage the geojson messages
         LOG_MSG("%s", "== Calling unpackGeojsonMessages");
-        ierr = traceBuffer_generictrace_unpackGeojsonMessages(
-            nDataRead, msgs, max_payload_size, &h5traceBuffer, &generictraceData);
+        ierr = traceBuffer_gnsstrace_unpackGeojsonMessages(
+            nDataRead, msgs, max_payload_size, &h5traceBuffer, &gnsstraceData);
         memory_free8c(&msgs);
         LOG_MSG("== Ending unpackGeojsonMessages: [Timing: %.4fs]",
             time_timeStamp() - tbeger);
@@ -485,7 +489,7 @@ int main(int argc, char **argv)
         
         // Update the hdf5 buffers
         ierr = traceBuffer_h5_setData(t1,
-                                      generictraceData,
+                                      gnsstraceData,
                                       h5traceBuffer);
         if (ierr != 0) {
             LOG_ERRMSG("%s: Error setting data in H5 file\n", fcnm);
@@ -652,8 +656,8 @@ int main(int argc, char **argv)
     ERROR:;
     memory_free8c(&msgs);
     core_events_freeEvents(&events);
-    traceBuffer_generictrace_freeGenerictraceData(&generictraceData);
-    dataexchange_earthworm_finalize(&ringInfo);
+    traceBuffer_gnsstrace_freeGnsstraceData(&gnsstraceData);
+    dataexchange_earthworm_finalize(&ringInfo); // move to dataexchange_closeDataConnection
     if (USE_AMQ) {
         // activeMQ_consumer_finalize(amqMessageListener);
         if (USE_DMLIB) {

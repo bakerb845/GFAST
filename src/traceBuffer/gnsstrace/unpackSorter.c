@@ -5,7 +5,7 @@
 
 
 // Defining comparator function as per the requirement
-int traceBuffer_generictrace_myCompare2(const void *x, const void *y)
+int traceBuffer_gnsstrace_myCompare2(const void *x, const void *y)
 {
     // Should sort by s,n,l,c,time
     const struct string_index xx = *(const struct string_index *) x;
@@ -30,7 +30,7 @@ int traceBuffer_generictrace_myCompare2(const void *x, const void *y)
                         return 0;
                     }
                 }
-                else { // order by {LYZ, LYN, LYE} to match generictraceData
+                else { // order by {LYZ, LYN, LYE} to match gnsstraceData
                     return -1 * icha;
                 }
             }
@@ -48,14 +48,14 @@ int traceBuffer_generictrace_myCompare2(const void *x, const void *y)
 }
 
 // Function to sort the array
-void traceBuffer_generictrace_sort2(struct string_index values[], int n)
+void traceBuffer_gnsstrace_sort2(struct string_index values[], int n)
 {
     // calling qsort function to sort the array
     // with the help of Comparator
-    qsort((void *) values, (size_t) n, sizeof(struct string_index), traceBuffer_generictrace_myCompare2);
+    qsort((void *) values, (size_t) n, sizeof(struct string_index), traceBuffer_gnsstrace_myCompare2);
 }
 
-void traceBuffer_generictrace_printStringindex(struct string_index *d, int n) {
+void traceBuffer_gnsstrace_printStringindex(struct string_index *d, int n) {
     int i;
     for (i = 0; i < n; i++){
         LOG_DEBUGMSG("CCC struct[%3d] indx:%5d: nscl:%s nsamps:%d time:%.2f",

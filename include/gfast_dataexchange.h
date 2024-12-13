@@ -2,8 +2,7 @@
 #define GFAST_DATAEXCHANGE_H__ 1
 
 #ifdef GFAST_USE_KAFKA
-typedef rd_kafka_t* data_conn_ptr; /*!< Pointer to the data connection */
-// typedef void* data_sub_ptr;        /*!< Pointer to the data subscription */
+#include <librdkafka/rdkafka.h>
 #endif
 #ifdef GFAST_USE_NATS
 #include <nats/nats.h>
@@ -66,6 +65,7 @@ void dataexchange_initializeDataConnection(
     void **connection,
     void **subscription);
 char *dataexchange_getMessages(
+    void **connection,
     void **subscription,
     const int max_payload_size,
     const int message_block,
@@ -121,5 +121,18 @@ int dataexchange_nats_close(void **connection, void **subscription);
 #endif /* GFAST_USE_NATS */
 
 // Kafka
+#ifdef GFAST_USE_KAFKA
+int dataexchange_kafka_connect(
+    struct dataconn_props_struct *props,
+    void **connection);
+char *dataexchange_kafka_getMessages(
+    void **connection,
+    const int max_payload_size,
+    const int message_block,
+    int *n_messages,
+    int *ierr);
+int dataexchange_kafka_close(void **connection);
+#endif /* GFAST_USE_KAFKA */
+
 
 #endif /* GFAST_DATAEXCHANGE_H__ */

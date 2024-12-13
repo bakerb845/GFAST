@@ -58,6 +58,7 @@
 #pragma clang diagnostic pop
 #endif
 #include "iscl/os/os.h"
+#include "gfast_dataexchange.h"
 #include "gfast_core.h"
 
 // TODO:
@@ -80,15 +81,14 @@ static int is_printable(const char *buf, size_t size) {
 
 /*!
  * @brief Initializes kafka consumer.
- * @param[in] hostname   Kafka server hostname.
- * @param[out] rk        Kafka consumer handle
+ * @param[in] props         Data connection properties.
+ * @param[out] connection    Data connection pointer (void *)
  * @result 0 indicates success.
  */
-int initialize_data_connection(
-        data_conn_ptr *rk_call,
-        data_sub_ptr *sk_call,
-        const struct dataconn_props_struct* props) {
-    sk_call = NULL;           /* Kafka does not need a continuous subscription pointer */
+int dataexchange_kafka_connect(
+    struct dataconn_props_struct *props,
+    void **connection) {
+
     rd_kafka_conf_t *conf;    /* Temporary configuration object */
     rd_kafka_resp_err_t err;  /* librdkafka API error code */
     char errstr[512];         /* librdkafka API error reporting buffer */
@@ -149,7 +149,7 @@ int initialize_data_connection(
      *       and the application must not reference it again after
      *       this call.
      */
-    data_conn_ptr rk = rd_kafka_new(RD_KAFKA_CONSUMER, conf, errstr, sizeof(errstr));
+    rd_kafka_t* rk = rd_kafka_new(RD_KAFKA_CONSUMER, conf, errstr, sizeof(errstr));
     if (!rk) {
             LOG_ERRMSG("%% Failed to create new consumer: %s\n",
                     errstr);
@@ -158,7 +158,6 @@ int initialize_data_connection(
 
     conf = NULL; /* Configuration object is now owned, and freed,
                   * by the rd_kafka_t instance. */
-
 
     /* Redirect all messages from per-partition queues to
      * the main queue so that messages can be consumed with one
@@ -200,44 +199,55 @@ int initialize_data_connection(
      * since a rebalance may happen at any time.
      * Start polling for messages. */
 
-    *rk_call = rk; 
+    // assign connection to data_conn_ptr
+    *connection = rk; 
     return 0;
 }
 
 
 /*!
  * @brief Closes kafka consumer.
- * @param[in] rk        Kafka consumer handle
- * @param[in] sk        NULL pointer
- * @result void
+ * @param[in] connection    Data connection pointer (void *)
+ * @result 0 indicates success.
  */
-void close_data_connection(data_conn_ptr rk,
-                           data_sub_ptr sk) {
+int dataexchange_kafka_close(void **connection) {
+    rd_kafka_t* rk = (rd_kafka_t*) (*connection);
     /* Close the consumer: commit final offsets and leave the group. */
     LOG_MSG("%s", "%% Closing consumer\n");
     rd_kafka_consumer_close(rk);
 
     /* Destroy the consumer */
     rd_kafka_destroy(rk);
+
+    return 0;
 }
 
 
 /*! 
  * @brief Reads all available messages from the kafka server/topic and returns data in expected
  * geojson format. Loop is synchronous/blocking.
- * @param[in] rk        Kafka consumer handle
- * @param[in] sk        NULL pointer
+ * @param[in] connection          Data connection pointer (void *)
+ * @param[in] max_payload_size    Max per-message size in char (int)
+ * @param[in] message_block       Max number of messages (int)
+ * @param[in] n_messages          Data connection pointer (int *)
+ * @param[in] ierr                Error state (int *)
  */
-int get_data(data_conn_ptr rk,
-             data_sub_ptr sk,
-             char *message_buffer,
-             int buffer_char_size,
-             int *n_messages,
-             int fixed_msg_bytes) {
+char *dataexchange_kafka_getMessages(
+    void **connection,
+    const int max_payload_size,
+    const int message_block,
+    int *n_messages,
+    int *ierr) {
+
+    rd_kafka_t* rk = (rd_kafka_t*) (*connection);
     rd_kafka_message_t *rkm;
     int message_size = 0;
-    int fixed_msg_char = fixed_msg_bytes / sizeof(char);
-    //LOG_MSG("START: fixed_msg_char = %d, buffer_char_size = %d", fixed_msg_char, buffer_char_size);
+    char* msgs = NULL;
+    *ierr = 0;
+    *n_messages = 0;
+    //LOG_MSG("START: max_payload_size (max chars in msg) = %d, message_block (n messages max) = %d", max_payload_size, message_block);
+
+    msgs = (char *)malloc(max_payload_size * message_block * sizeof(char));
 
     while (true) {
       /* Timeout: no message within 100ms,
@@ -247,7 +257,8 @@ int get_data(data_conn_ptr rk,
       rkm = rd_kafka_consumer_poll(rk, 200);
       if (!rkm) {
           LOG_MSG(" unpacked and copied %d messages", *n_messages);
-          return 0;
+          *ierr = 1;
+          return NULL;
       }
 
       /* consumer_poll() will return either a proper message
@@ -286,34 +297,33 @@ int get_data(data_conn_ptr rk,
 
       //LOG_MSG(" message char size %d", (int)rkm->len);
       /* Put payload into buffer for parsing */
-      if ((int)rkm->len > fixed_msg_char) { // check char lengths
+      if ((int)rkm->len > max_payload_size) { // check char lengths
           LOG_WARNMSG(" Skipping message %d in queue, message too long (%d)",
               *n_messages, (int)rkm->len);
           rd_kafka_message_destroy(rkm);
           continue;
       }
-      //LOG_MSG(" current message char size %d", *n_messages * fixed_msg_char);
-      if (*n_messages * fixed_msg_char > buffer_char_size - (int)rkm->len) { // check char lengths
-          LOG_ERRMSG(" Unread messages in queue, buffer size exceeded (%d overflow)",
-              (int)rkm->len);
+      //LOG_MSG(" current message char size %d", *n_messages * max_payload_size);
+      if (*n_messages + 1 > message_block) { // check char lengths
+          LOG_ERRMSG(" Unread messages in queue, exceeded message limit (%d)",
+              message_block);
           rd_kafka_message_destroy(rkm);
           break;
       }
-      memcpy(&message_buffer[*n_messages * fixed_msg_char], (const char *)rkm->payload, rkm->len * sizeof(char));
+      memcpy(&message_buffer[*n_messages * max_payload_size], (const char *)rkm->payload, rkm->len * sizeof(char));
       //LOG_MSG("%s\n", message_buffer);
-      //LOG_MSG("%.1024s\n", &message_buffer[*n_messages * fixed_msg_char]);
+      //LOG_MSG("%.1024s\n", &message_buffer[*n_messages * max_payload_size]);
       *n_messages += 1;
 
       rd_kafka_message_destroy(rkm);
     }
 
     LOG_MSG(" unpacked and copied %d messages", *n_messages);
-    return 0;
+    return msgs;
 }
 
 /*! 
  * @brief support function for readIni
- */
 static void setVarName(const char *group, const char *variable,
                        char *var) {
   memset(var, 0, 256*sizeof(char));
@@ -321,7 +331,6 @@ static void setVarName(const char *group, const char *variable,
   return;
 }
 
-/*! 
  * @brief Reads the DataConn properties from the initialization file.
  *
  * @param[in] propfilename     Name of properties file.
@@ -331,7 +340,6 @@ static void setVarName(const char *group, const char *variable,
  *
  * @result 0 indicates success.
  *
- */
 int data_connection_readIni(const char *propfilename,
                      const char *group,
                      struct dataconn_props_struct* data_conn_props) {
@@ -366,7 +374,6 @@ int data_connection_readIni(const char *propfilename,
     strcpy(data_conn_props->topic, s);
   }
 
-  /*
   setVarName(group, "groupid\0", var);
   s = iniparser_getstring(ini, var, NULL);
   if (s == NULL) {
@@ -375,7 +382,6 @@ int data_connection_readIni(const char *propfilename,
   } else {
       strcpy(data_conn_props->groupid, s);
   }
-  */
   iniparser_freedict(ini);
   return ierr;
-}
+} */

@@ -456,7 +456,7 @@ int main(int argc, char **argv)
         const int message_block = 10000;
         memory_free8c(&msgs);
         // TODO: Add Earthworm call options within this function
-        msgs = dataexchange_getMessages(&subscription, max_payload_size, message_block, &nDataRead, &ierr);
+        msgs = dataexchange_getMessages(&connection, &subscription, max_payload_size, message_block, &nDataRead, &ierr);
         LOG_MSG("Got %d messages [Timing: %.4fs]", nDataRead, time_timeStamp() - tbeger);
         tbeger = time_timeStamp();
         

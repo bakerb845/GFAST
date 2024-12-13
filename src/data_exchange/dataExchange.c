@@ -26,6 +26,7 @@ void dataexchange_initializeDataConnection(
     dataexchange_nats_connect(props, connection, subscription);
     #elif GFAST_USE_KAFKA
     LOG_MSG("%s", "Initializing Kafka");
+    dataexchange_kafka_connect(props, connection);
     #else 
     LOG_ERRMSG("%s", "No data connections specified!");
     #endif
@@ -47,6 +48,7 @@ void dataexchange_closeDataConnection(
     dataexchange_nats_close(connection, subscription);
     #elif GFAST_USE_KAFKA
     LOG_MSG("%s", "Closing Kafka");
+    dataexchange_kafka_close(connection);
     #else 
     LOG_ERRMSG("%s", "No data connections specified!");
     #endif
@@ -55,6 +57,7 @@ void dataexchange_closeDataConnection(
 }
 
 char *dataexchange_getMessages(
+    void **connection,
     void **subscription,
     const int max_payload_size,
     const int message_block,
@@ -77,6 +80,12 @@ char *dataexchange_getMessages(
         ierr);
     #elif GFAST_USE_KAFKA
     LOG_MSG("%s", "Getting data from Kafka");
+    msgs = dataexchange_kafka_getMessages(
+        connection,
+        max_payload_size,
+        message_block,
+        n_messages,
+        ierr);
     #else 
     LOG_ERRMSG("%s", "No data connections specified!");
     #endif

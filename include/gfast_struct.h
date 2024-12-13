@@ -12,7 +12,6 @@
 #define PATH_MAX 4096
 #endif
 #include "gfast_config.h"
-#include "kafka_consumer.h"
 
 
 struct GFAST_pgd_props_struct

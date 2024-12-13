@@ -129,18 +129,16 @@ SET(SRCS_H5TB src/traceBuffer/h5/copyTraceBufferToGFAST.c src/traceBuffer/h5/fin
               src/traceBuffer/h5/getScalars.c src/traceBuffer/h5/initialize.c
               src/traceBuffer/h5/readData.c src/traceBuffer/h5/setData.c
               src/traceBuffer/h5/setFileName.c src/traceBuffer/h5/setScalars.c
-              src/traceBuffer/h5/setTraceBufferFromGFAST.c)
-IF (EW_FOUND)
-   SET(SRCS_H5TB ${SRCS_H5TB}
-       src/traceBuffer/ewrr/classifyRetval.c src/traceBuffer/ewrr/finalize.c
-       src/traceBuffer/ewrr/flushRing.c src/traceBuffer/ewrr/freetb2Data.c
-       src/traceBuffer/ewrr/freetb2Trace.c src/traceBuffer/ewrr/getMessagesFromRing.c
-       src/traceBuffer/ewrr/initialize.c src/traceBuffer/ewrr/settb2Data.c
-       src/traceBuffer/ewrr/unpackTraceBuf2Messages.c
-       src/traceBuffer/ewrr/settb2DataFromGFAST.c src/traceBuffer/ewrr/tb2_hash.c
-       #src/traceBuffer/ewrr/swap.c # This may die in subsequent versions of EW
-       )
-ENDIF()
+              src/traceBuffer/h5/setTraceBufferFromGFAST.c
+              src/traceBuffer/gnsstrace/freeGnsstraceData.c 
+              src/traceBuffer/gnsstrace/printGnsstraceData.c
+              src/traceBuffer/gnsstrace/setGnsstraceDataFromGFAST.c
+              src/traceBuffer/gnsstrace/unpackSorter.c
+              src/traceBuffer/gnsstrace/freeGnsstrace.c
+              src/traceBuffer/gnsstrace/gnsstrace_hash.c
+              src/traceBuffer/gnsstrace/setGnsstraceData.c
+              src/traceBuffer/gnsstrace/unpackGeojsonMessages.c
+              src/traceBuffer/gnsstrace/unpackTraceBuf2Messages.c)
 #ADD_SUBDIRECTORY(src/xml)
 SET(SRCS_XML src/xml/shakeAlert/coreInfo.c src/xml/shakeAlert/segment.c
              src/xml/shakeAlert/slip.c src/xml/shakeAlert/vertex.c
@@ -167,19 +165,32 @@ IF (GFAST_USE_AMQ)
                 src/activeMQ/producer.cpp)
    #ADD_SUBDIRECTORY(src/activeMQ)
 ENDIF (GFAST_USE_AMQ)
+# Dataexchange
+SET(SRCS_DATAEX src/data_exchange/dataExchange.c)
 # Have GFAST use Earthworm
+IF (EW_FOUND)
+   SET(SRCS_DATAEX ${SRCS_DATAEX} 
+       src/data_exchange/earthworm/classifyRetval.c src/data_exchange/earthworm/finalize.c
+       src/data_exchange/earthworm/flushRing.c src/data_exchange/earthworm/getMessagesFromRing.c
+       src/data_exchange/earthworm/initialize.c
+       #src/data_exchange/earthworm/swap.c # This may die in subsequent versions of EW
+       )
+ENDIF()
 IF (GFAST_USE_EW)
    #ADD_DEFINITIONS(-DUSE_EW=1)
    INCLUDE_DIRECTORIES(${EW_INCLUDE_DIR})
 ELSE()
    SET(GFAST_USE_EW OFF)
 ENDIF (GFAST_USE_EW)
-# Have GFAST use Kafka
+IF (GFAST_USE_NATS)
+  INCLUDE_DIRECTORIES(${NATS_INCLUDE_DIR})
+  SET(SRCS_DATAEX ${SRCS_DATAEX} 
+      src/data_exchange/nats/nats_consumer.c)
+ENDIF (GFAST_USE_KAFKA)
 IF (GFAST_USE_KAFKA)
   INCLUDE_DIRECTORIES(${KAFKA_INCLUDE_DIR})
-   SET(SRCS_KAFKA src/data_exchange/kafka/kafka_consumer.c
-       src/traceBuffer/ewrr/settb2DataFromGFAST.c
-       src/traceBuffer/ewrr/unpackGeojsonMessages.c)
+  SET(SRCS_DATAEX ${SRCS_DATAEX} 
+      src/data_exchange/kafka/kafka_consumer.c)
 ENDIF (GFAST_USE_KAFKA)
 # Have GFAST propagate results to pnsn.org
 IF (UW_AMAZON)
@@ -191,10 +202,11 @@ ENDIF (UW_AMAZON)
 # Add earthworm build flags - the earthworm `way' is to modify the system's OS flags
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EW_BUILD_FLAGS}" CACHE STRING "" FORCE)
 
-ADD_LIBRARY(gfast_shared SHARED ${SRCS_CORE} ${SRCS_XML} ${SRCS_KAFKA} ${SRCS_AMQ} ${SRCS_EEW} ${SRCS_HDF5} ${SRCS_H5TB})
-ADD_LIBRARY(gfast_static STATIC ${SRCS_CORE} ${SRCS_XML} ${SRCS_KAFKA} ${SRCS_AMQ} ${SRCS_EEW} ${SRCS_HDF5} ${SRCS_H5TB})
+ADD_LIBRARY(gfast_shared SHARED ${SRCS_CORE} ${SRCS_XML} ${SRCS_DATAEX} ${SRCS_AMQ} ${SRCS_EEW} ${SRCS_HDF5} ${SRCS_H5TB})
+ADD_LIBRARY(gfast_static STATIC ${SRCS_CORE} ${SRCS_XML} ${SRCS_DATAEX} ${SRCS_AMQ} ${SRCS_EEW} ${SRCS_HDF5} ${SRCS_H5TB})
 
-ADD_EXECUTABLE(gfast_playback src/gfast_playback.c ${SRCS_EEW})
+#ADD_EXECUTABLE(gfast_playback src/gfast_playback.c ${SRCS_EEW})
+ADD_EXECUTABLE(gfast_cwu src/gfast_cwu.c ${SRCS_EEW})
 IF (GFAST_USE_EW)
 ADD_EXECUTABLE(gfast_eew src/gfast_eew.c ${SRCS_EEW})
 ENDIF()
@@ -214,7 +226,8 @@ IF (UW_AMAZON)
 ENDIF (UW_AMAZON)
 
 # Let CMake know where the binaries will live 
-SET_TARGET_PROPERTIES(gfast_playback PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+#SET_TARGET_PROPERTIES(gfast_playback PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+SET_TARGET_PROPERTIES(gfast_cwu PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 IF (GFAST_USE_EW)
 SET_TARGET_PROPERTIES(gfast_eew PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 ENDIF()
@@ -264,8 +277,9 @@ TARGET_LINK_LIBRARIES(gfast_static ${LIB_BASE})
 IF (GFAST_USE_EW)
 TARGET_LINK_LIBRARIES(gfast_eew      gfast_shared ${LIB_ALL} -lhdf5)
 ENDIF()
-TARGET_LINK_LIBRARIES(gfast_playback gfast_shared ${LIB_ALL})
-TARGET_LINK_LIBRARIES(xcoreTests     gfast_shared ${LIB_ALL})
+TARGET_LINK_LIBRARIES(gfast_cwu gfast_shared ${LIB_ALL} -lhdf5)
+#TARGET_LINK_LIBRARIES(gfast_playback gfast_shared ${LIB_ALL})
+TARGET_LINK_LIBRARIES(xcoreTests     gfast_shared ${LIB_ALL} -lhdf5)
 IF (UW_AMAZON)
    TARGET_LINK_LIBRARIES(gfast2web   gfast_shared ${JANSSON_LIBRARY} ${LIB_ALL} -lcurl -lpng -lhdf5)
    #TARGET_LINK_LIBRARIES(gfast_debug gfast_shared ${JANSSON_LIBRARY} ${LIB_ALL} -lcurl -lpng)

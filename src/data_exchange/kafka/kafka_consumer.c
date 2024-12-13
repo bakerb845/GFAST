@@ -60,6 +60,7 @@
 #include "iscl/os/os.h"
 #include "gfast_dataexchange.h"
 #include "gfast_core.h"
+#include <librdkafka/rdkafka.h>
 
 // TODO:
 // Prepare the configuration in the calling program
@@ -310,7 +311,7 @@ char *dataexchange_kafka_getMessages(
           rd_kafka_message_destroy(rkm);
           break;
       }
-      memcpy(&message_buffer[*n_messages * max_payload_size], (const char *)rkm->payload, rkm->len * sizeof(char));
+      memcpy(&msgs[*n_messages * max_payload_size], (const char *)rkm->payload, rkm->len * sizeof(char));
       //LOG_MSG("%s\n", message_buffer);
       //LOG_MSG("%.1024s\n", &message_buffer[*n_messages * max_payload_size]);
       *n_messages += 1;
